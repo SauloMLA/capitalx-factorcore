@@ -51,6 +51,23 @@ export class Invoice {
     return new Invoice(id, folio, debtorTaxId, debtorName.trim(), amount, issueDate, dueDate);
   }
 
+  /**
+   * Reconstructs an Invoice from persisted data.
+   * Used exclusively by OperationMapper — bypasses construction guards
+   * that are guaranteed to hold for any record already written to the database.
+   */
+  public static reconstitute(
+    id: string,
+    folio: InvoiceFolio,
+    debtorTaxId: TaxId,
+    debtorName: string,
+    amount: Money,
+    issueDate: Date,
+    dueDate: Date,
+  ): Invoice {
+    return new Invoice(id, folio, debtorTaxId, debtorName, amount, issueDate, dueDate);
+  }
+
   public get valueId(): string {
     return this.id;
   }

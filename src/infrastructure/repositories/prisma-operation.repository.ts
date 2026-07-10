@@ -47,6 +47,6 @@ export class PrismaOperationRepository implements OperationRepository {
       where: { clientId },
       include: { invoices: true },
     });
-    return records.map(OperationMapper.toDomain);
+    return records.map((r) => OperationMapper.toDomain(r));
   }
 }
