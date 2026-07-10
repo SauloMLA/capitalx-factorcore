@@ -90,4 +90,27 @@ Implementar el Agregado de Cliente (`Client`) bajo un enfoque Domain-First simpl
 *   Ninguna.
 
 ### Next milestone
-Implementar el Commit 004: Agregado de Factura (Invoice) con validación de fechas de vencimiento y deudor simplificado.
+Implementar el Commit 004: Entidad Factura (Invoice) simplificada como parte de Operación.
+
+---
+
+## July 10 (Sprint Continued)
+
+### Today's goal
+Implementar la entidad de Factura (`Invoice`) bajo el dominio simplificado, asegurando que sea una entidad interna y no un Aggregate Root independiente.
+
+### Main decisions
+*   **Aislamiento de la Entidad:** De acuerdo con las instrucciones refinadas de arquitectura, `Invoice` se diseñó como una entidad pura sin repositorio (`InvoiceRepository`) ni estados operativos propios (`InvoiceStatus`), limitándose a responder a su propio comportamiento.
+*   **Encapsulación de Datos:** Incorpora folios (`InvoiceFolio`), deudores (`TaxId` y nombre), monto (`Money`) y fechas de emisión y vencimiento.
+*   **Determinismo en Fechas:** La lógica de cálculo de días restantes (`getRemainingDays()`) se implementó utilizando partes de fecha UTC (`Date.UTC`), previniendo errores por desplazamientos locales de zona horaria (timezone offsets) en los entornos de ejecución y pruebas.
+*   **Criterio de Elegibilidad:** Habilita `isEligibleForFinancing()`, verificando de manera individual que el vencimiento sea de al menos 15 días calendario a partir de una fecha de referencia.
+
+### Things I learned
+*   El uso de constructores privados y fábricas estáticas (`create`) asegura que no existan entidades `Invoice` en estado inconsistente en memoria.
+*   Evitar los métodos de fecha locales (`getFullYear()`, `getDate()`) en cálculos cronológicos exactos en favor de métodos UTC evita diferencias de fecha según la configuración regional de la máquina del desarrollador.
+
+### Open questions
+*   Ninguna.
+
+### Next milestone
+Implementar el Commit 005: Agregado de Operación (`Operation`) consolidando la agrupación de facturas y la fórmula de descuento comercial simple.
