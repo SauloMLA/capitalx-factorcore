@@ -69,4 +69,81 @@ Implementar los objetos de valor (Value Objects) core del dominio de factoraje y
 *   Ninguna.
 
 ### Next milestone
-Implementar el Commit 003: Agregados de Issuer y Debtor con sus respectivos puertos de repositorio.
+Implementar el Commit 003: Agregado de Cliente (Client).
+
+---
+
+## July 10 (Sprint Continued)
+
+### Today's goal
+Implementar el Agregado de Cliente (`Client`) bajo un enfoque Domain-First simplificado y definir su puerto de repositorio en el dominio.
+
+### Main decisions
+*   **Simplificación Operativa:** De acuerdo con la nueva directiva de diseño, se descartaron los agregados complejos de Deudor y Emisor y se unificó la contraparte operativa en el agregado root `Client`.
+*   **Atributos y Comportamiento:** El agregado `Client` encapsula `id`, `taxId` (Value Object), `name` (string) y `status` (ClientStatus ACTIVE/INACTIVE). Implementa validaciones de inicialización de negocio y mutadores controlados `activate()` y `deactivate()`.
+*   **Puerto de Repositorio:** Se definió la interfaz `ClientRepository` para la búsqueda por ID y TaxId, y almacenamiento de la entidad, desacoplada de cualquier ORM.
+
+### Things I learned
+*   Establecer primero el Agregado de Cliente simplifica enormemente las dependencias estructurales de las facturas que vendrán en el siguiente commit.
+
+### Open questions
+*   Ninguna.
+
+### Next milestone
+Implementar el Commit 004: Entidad Factura (Invoice) simplificada como parte de Operación.
+
+---
+
+## July 10 (Sprint Continued)
+
+### Today's goal
+Implementar la entidad de Factura (`Invoice`) bajo el dominio simplificado, asegurando que sea una entidad interna y no un Aggregate Root independiente.
+
+### Main decisions
+*   **Aislamiento de la Entidad:** De acuerdo con las instrucciones refinadas de arquitectura, `Invoice` se diseñó como una entidad pura sin repositorio (`InvoiceRepository`) ni estados operativos propios (`InvoiceStatus`), limitándose a responder a su propio comportamiento.
+*   **Encapsulación de Datos:** Incorpora folios (`InvoiceFolio`), deudores (`TaxId` y nombre), monto (`Money`) y fechas de emisión y vencimiento.
+*   **Determinismo en Fechas:** La lógica de cálculo de días restantes (`getRemainingDays()`) se implementó utilizando partes de fecha UTC (`Date.UTC`), previniendo errores por desplazamientos locales de zona horaria (timezone offsets) en los entornos de ejecución y pruebas.
+*   **Criterio de Elegibilidad:** Habilita `isEligibleForFinancing()`, verificando de manera individual que el vencimiento sea de al menos 15 días calendario a partir de una fecha de referencia.
+
+### Things I learned
+*   El uso de constructores privados y fábricas estáticas (`create`) asegura que no existan entidades `Invoice` en estado inconsistente en memoria.
+*   Evitar los métodos de fecha locales (`getFullYear()`, `getDate()`) en cálculos cronológicos exactos en favor de métodos UTC evita diferencias de fecha según la configuración regional de la máquina del desarrollador.
+
+### Open questions
+*   Ninguna.
+
+### Next milestone
+Implementar el Commit 005: Aggregate Operation + refactors de dominio alineados al reto.
+
+---
+
+## July 10 (Sprint Continued)
+
+### Today's goal
+Implementar el Aggregate Root `Operation` como corazón del dominio y refactorizar los conceptos existentes para alinearlos estrictamente con los requerimientos del reto de Capital X.
+
+### Main decisions
+*   **Scope reset:** Se eliminaron todos los conceptos financieros no solicitados (tasas nominales, garantías, líneas de crédito, estados de operación, descuento comercial por días). El dominio ahora refleja exactamente los dos procesos del reto: alta de clientes y originación.
+*   **ClientStatus PENDING/APPROVED:** Reemplaza ACTIVE/INACTIVE. Todo cliente inicia PENDIENTE y debe ser aprobado explícitamente antes de operar.
+*   **TaxId sólo moral:** La expresión regular se restringió a exactamente 12 caracteres (personas morales), que es el único tipo RFC que el reto menciona.
+*   **Invoice eligibilidad 15–120 días:** Se añadió el límite superior de 120 días, previamente omitido.
+*   **Client agrega email:** Campo requerido por el proceso de alta de clientes.
+*   **Operation como Aggregate rico:** Toda la lógica de negocio de la originación vive aquí — sin Domain Services, sin estado temporal almacenado, sin conocimiento de infraestructura.
+*   **OperationValidationException:** Excepción estructurada que acumula todos los errores de todas las facturas y los devuelve juntos al llamador (Application Layer), permitiendo reportar folio + motivo por cada falla.
+*   **existingFolios como parámetro:** El control de doble financiamiento recibe la lista de folios ya financiados desde el Application Layer, manteniendo el Aggregate independiente de repositorios.
+*   **Fórmulas del reto aplicadas sin modificación:**
+    *   `monto_total = suma de facturas`
+    *   `monto_adelantado = total × 0.85`
+    *   `comisión = total × 0.015`
+    *   `monto_a_depositar = adelantado − comisión`
+
+### Things I learned
+*   Un Aggregate rico y cohesionado puede contener múltiples reglas sin convertirse en sobreingeniería, siempre que cada método responda a un requerimiento funcional concreto.
+*   Pasar `existingFolios` como parámetro en lugar de inyectar un repositorio mantiene el Aggregate 100% testeable sin mocks de base de datos.
+
+### Open questions
+*   Ninguna.
+
+### Next milestone
+Implementar los casos de uso de Aplicación: registro de cliente, aprobación de cliente y creación de operación.
+
