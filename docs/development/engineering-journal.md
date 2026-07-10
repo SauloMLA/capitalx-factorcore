@@ -26,4 +26,25 @@ Definir los cimientos del proyecto y la estructura arquitectónica inicial. Mode
 *   ¿Deberíamos incorporar soporte multi-moneda desde la versión inicial o manejarlo como una mejora a futuro para mantener el desarrollo ágil? (De momento se asume una única moneda base, documentado como mejora futura).
 
 ### Next milestone
-Implementar la estructura física de directorios (`src/`), inicializar el proyecto NestJS e integrar Prisma con la base de datos local SQLite para comenzar a codificar la primera funcionalidad vertical (Registro de Deudor).
+Inicializar la persistencia física local (SQLite + Prisma) y definir el esquema físico en la Fase 1.
+
+---
+
+## July 10
+
+### Today's goal
+Inicializar el espacio de trabajo físico del proyecto con NestJS y habilitar el tipado estricto en TypeScript.
+
+### Main decisions
+*   Scaffold de NestJS ejecutado mediante `@nestjs/cli` omitiendo la inicialización de git local (`--skip-git`) para preservar nuestra base de documentación.
+*   Habilitar `"strict": true` de manera global en `tsconfig.json` para garantizar el máximo nivel de tipado estricto en la lógica de negocio.
+*   Creación de un archivo `.gitignore` robusto que ignore artefactos compilados (`dist/`) y dependencias (`node_modules/`).
+
+### Things I learned
+*   El uso de `--skip-git` de NestJS CLI evita la sobre-escritura accidental del repositorio git configurado.
+
+### Open questions
+*   Ninguna.
+
+### Next milestone
+Implementar el Commit 002: Configuración del esquema físico de Prisma y base de datos local SQLite.
