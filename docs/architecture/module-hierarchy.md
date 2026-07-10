@@ -61,7 +61,7 @@ export class DatabaseModule {}
 export class InfrastructureModule {}
 ```
 
-Use cases receive their repositories injected with `@Inject(REPOSITORY_TOKENS.CLIENT)`.
+Use cases are registered via factory providers (`useFactory`) where repositories are injected into their constructors, keeping them completely decoupled from NestJS decorators.
 
 ### 3. `HttpModule` (future) only imports `InfrastructureModule`
 

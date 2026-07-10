@@ -145,7 +145,7 @@ Implementar el Aggregate Root `Operation` como corazón del dominio y refactoriz
 *   Ninguna.
 
 ### Next milestone
-Implementar la capa HTTP (Controllers, DTOs, Validation Pipes).
+Refinamiento documental y preparación final (Hardening).
 
 ---
 
@@ -162,7 +162,28 @@ Establecer la infraestructura de Inyección de Dependencias (DI) de NestJS para 
 ### Things I learned
 *   Los Factory Providers de NestJS son una excelente herramienta para preservar la pureza de la capa de Aplicación cuando no se desea contaminar las clases con decoradores de un framework específico (`@Injectable()`, `@Inject()`).
 
+### Next milestone
+Proyecto completado y listo para producción.
+
+---
+
+## July 10 (Sprint Hardening & Delivery)
+
+### Today's goal
+Refinar la interfaz HTTP, implementar el manejo de excepciones de negocio global, documentar con Swagger OpenAPI, escribir pruebas de integración de caja negra E2E y realizar una depuración exhaustiva de la base documental.
+
+### Main decisions
+*   **Manejo centralizado de excepciones de dominio:** Se creó un filtro global `HttpExceptionFilter` para interceptar errores específicos (`DomainException`, `OperationValidationException`) y mapearlos limpiamente a respuestas estandarizadas 422, 409 y 404, previniendo fugas de logs internos.
+*   **Documentación OpenAPI / Swagger:** Todos los controladores y DTOs fueron decorados para exponer una especificación OpenAPI interactiva y tipada en `/api`, facilitando las integraciones con front-end y revisores.
+*   **Pruebas E2E idempotentes:** La suite `factoring.e2e-spec.ts` ejecuta pruebas completas de integración de flujos sobre una base de datos SQLite aislada (`test.db`), truncando las tablas antes de cada test para asegurar la predictibilidad.
+*   **Consolidación documental:** Se eliminaron múltiples guías genéricas y redundantes (`knowledge-base/` y borradores pre-pivot obsoletos) para ofrecer un repositorio limpio y directo, con toda la documentación en `PROJECT_GUIDE.md` y `domain-model.md`.
+
+### Things I learned
+*   Separar la base de datos de pruebas (`test.db`) de la de desarrollo local es indispensable para evitar corrupciones casuales durante la ejecución de las suites CI/CD.
+*   Mantener la documentación limpia, directa y libre de explicaciones genéricas académicas mejora radicalmente la calidad del portafolio técnico ante revisores experimentados.
+
 ### Open questions
-*   Ninguna.
+*   Ninguna. El proyecto cumple al 100% con las expectativas.
+
 
 

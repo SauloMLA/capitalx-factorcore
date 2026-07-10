@@ -14,7 +14,7 @@ Seguimiento ejecutivo del progreso de las fases de desarrollo acordadas en el [P
 *   `[x]` **Implementation (Domain Layer):** Value Objects, Client aggregate, Invoice entity, Operation aggregate — dominio completo.
 *   `[x]` **Implementation (Application Layer):** Casos de uso de registro de cliente, aprobación y creación de operación.
 *   `[x]` **Implementation (Infrastructure Layer & DI):** Adapters Prisma, mappers, DatabaseModule, InfrastructureModule, DI wiring.
-*   `[/]` **Implementation (HTTP Layer):** Controladores, DTOs y mapeos sin exception filters.
-*   `[ ]` **Testing:** Pruebas unitarias sobre casos de uso/dominio y de integración E2E.
-*   `[ ]` **Documentation:** OpenAPI/Swagger completo y manuales de integración de la API.
-*   `[ ]` **Final Review:** Revisión de calidad y verificación final.
+*   `[x]` **Implementation (HTTP Layer):** Controladores, DTOs, validaciones y filtros globales de excepciones.
+*   `[x]` **Testing:** Pruebas unitarias sobre casos de uso/dominio e integración E2E.
+*   `[x]` **Documentation:** OpenAPI/Swagger interactivo completo en `/api` y guías en Markdown.
+*   `[x]` **Final Review:** Revisión final de portafolio y refinamiento (Hardening) completado.
