@@ -5,7 +5,7 @@ import { InvoiceFolio } from '../../domain/common/value-objects/invoice-folio.va
 import { TaxId } from '../../domain/common/value-objects/tax-id.value-object';
 import { Money } from '../../domain/common/value-objects/money.value-object';
 
-type OperationRecordWithInvoices = OperationRecord & { invoices: InvoiceRecord[] };
+export type OperationRecordWithInvoices = OperationRecord & { invoices: InvoiceRecord[] };
 
 /**
  * Manual bi-directional mapper between Prisma OperationRecord (with nested invoices)
@@ -22,7 +22,7 @@ export class OperationMapper {
    */
   static toDomain(record: OperationRecordWithInvoices): Operation {
     const invoices = record.invoices.map((inv) =>
-      Invoice.create(
+      Invoice.reconstitute(
         inv.id,
         InvoiceFolio.create(inv.folio),
         TaxId.create(inv.debtorRfc),
