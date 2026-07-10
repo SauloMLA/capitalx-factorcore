@@ -113,4 +113,37 @@ Implementar la entidad de Factura (`Invoice`) bajo el dominio simplificado, aseg
 *   Ninguna.
 
 ### Next milestone
-Implementar el Commit 005: Agregado de Operación (`Operation`) consolidando la agrupación de facturas y la fórmula de descuento comercial simple.
+Implementar el Commit 005: Aggregate Operation + refactors de dominio alineados al reto.
+
+---
+
+## July 10 (Sprint Continued)
+
+### Today's goal
+Implementar el Aggregate Root `Operation` como corazón del dominio y refactorizar los conceptos existentes para alinearlos estrictamente con los requerimientos del reto de Capital X.
+
+### Main decisions
+*   **Scope reset:** Se eliminaron todos los conceptos financieros no solicitados (tasas nominales, garantías, líneas de crédito, estados de operación, descuento comercial por días). El dominio ahora refleja exactamente los dos procesos del reto: alta de clientes y originación.
+*   **ClientStatus PENDING/APPROVED:** Reemplaza ACTIVE/INACTIVE. Todo cliente inicia PENDIENTE y debe ser aprobado explícitamente antes de operar.
+*   **TaxId sólo moral:** La expresión regular se restringió a exactamente 12 caracteres (personas morales), que es el único tipo RFC que el reto menciona.
+*   **Invoice eligibilidad 15–120 días:** Se añadió el límite superior de 120 días, previamente omitido.
+*   **Client agrega email:** Campo requerido por el proceso de alta de clientes.
+*   **Operation como Aggregate rico:** Toda la lógica de negocio de la originación vive aquí — sin Domain Services, sin estado temporal almacenado, sin conocimiento de infraestructura.
+*   **OperationValidationException:** Excepción estructurada que acumula todos los errores de todas las facturas y los devuelve juntos al llamador (Application Layer), permitiendo reportar folio + motivo por cada falla.
+*   **existingFolios como parámetro:** El control de doble financiamiento recibe la lista de folios ya financiados desde el Application Layer, manteniendo el Aggregate independiente de repositorios.
+*   **Fórmulas del reto aplicadas sin modificación:**
+    *   `monto_total = suma de facturas`
+    *   `monto_adelantado = total × 0.85`
+    *   `comisión = total × 0.015`
+    *   `monto_a_depositar = adelantado − comisión`
+
+### Things I learned
+*   Un Aggregate rico y cohesionado puede contener múltiples reglas sin convertirse en sobreingeniería, siempre que cada método responda a un requerimiento funcional concreto.
+*   Pasar `existingFolios` como parámetro en lugar de inyectar un repositorio mantiene el Aggregate 100% testeable sin mocks de base de datos.
+
+### Open questions
+*   Ninguna.
+
+### Next milestone
+Implementar los casos de uso de Aplicación: registro de cliente, aprobación de cliente y creación de operación.
+

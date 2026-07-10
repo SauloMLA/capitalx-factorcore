@@ -96,6 +96,7 @@ export class Invoice {
   }
 
   public isEligibleForFinancing(requestDate: Date): boolean {
-    return this.getRemainingDays(requestDate) >= 15;
+    const days = this.getRemainingDays(requestDate);
+    return days >= 15 && days <= 120;
   }
 }

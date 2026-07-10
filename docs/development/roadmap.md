@@ -11,7 +11,8 @@ Seguimiento ejecutivo del progreso de las fases de desarrollo acordadas en el [P
 *   `[x]` **Ubiquitous Language:** Glosario y modelado de objetos alineados con el negocio.
 *   `[x]` **Architecture Decision Records:** Registro y justificación de decisiones fundamentales (ADR-001 al ADR-003).
 *   `[x]` **Infrastructure:** Configuración física de `src/`, e inicialización de NestJS.
-*   `[/]` **Implementation:** Escritura de entidades, Value Objects y casos de uso en progreso.
+*   `[x]` **Implementation (Domain Layer):** Value Objects, Client aggregate, Invoice entity, Operation aggregate — dominio completo.
+*   `[/]` **Implementation (Application Layer):** Casos de uso de registro de cliente, aprobación y creación de operación.
 *   `[ ]` **Testing:** Pruebas unitarias sobre casos de uso/dominio y de integración E2E.
 *   `[ ]` **Documentation:** OpenAPI/Swagger completo y manuales de integración de la API.
 *   `[ ]` **Final Review:** Revisión de calidad y verificación final.
