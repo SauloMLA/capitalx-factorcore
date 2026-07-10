@@ -31,6 +31,21 @@ export class Client {
     return new Client(id, taxId, name.trim(), email.trim().toLowerCase(), ClientStatus.PENDING);
   }
 
+  /**
+   * Reconstructs a Client from persisted data.
+   * Used exclusively by the persistence Mapper — bypasses the PENDING-only invariant
+   * so any previously saved status can be faithfully restored.
+   */
+  public static reconstitute(
+    id: string,
+    taxId: TaxId,
+    name: string,
+    email: string,
+    status: ClientStatus,
+  ): Client {
+    return new Client(id, taxId, name, email, status);
+  }
+
   public get valueId(): string {
     return this.id;
   }

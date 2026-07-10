@@ -14,9 +14,12 @@ yarn-error.log*
 
 # Environments and DB
 .env
+.env.test
 .env.local
 /*.db
 /*.db-journal
+prisma/*.db
+prisma/*.db-journal
 
 # IDEs
 .vscode/

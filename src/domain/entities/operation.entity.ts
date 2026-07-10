@@ -78,6 +78,24 @@ export class Operation {
     );
   }
 
+  /**
+   * Reconstructs an Operation from persisted data.
+   * Used exclusively by the persistence Mapper — skips all business-rule validation
+   * since the data was validated at creation time.
+   * Restores pre-calculated amounts directly to avoid floating-point re-computation.
+   */
+  public static reconstitute(
+    id: string,
+    clientId: string,
+    invoices: Invoice[],
+    totalAmount: Money,
+    advancedAmount: Money,
+    commission: Money,
+    depositAmount: Money,
+  ): Operation {
+    return new Operation(id, clientId, invoices, totalAmount, advancedAmount, commission, depositAmount);
+  }
+
   // ─── Business Rule: Client must be APPROVED ────────────────────────────────
 
   private static validateClientIsApproved(client: Client): void {
