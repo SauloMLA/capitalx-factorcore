@@ -145,5 +145,24 @@ Implementar el Aggregate Root `Operation` como corazón del dominio y refactoriz
 *   Ninguna.
 
 ### Next milestone
-Implementar los casos de uso de Aplicación: registro de cliente, aprobación de cliente y creación de operación.
+Implementar la capa HTTP (Controllers, DTOs, Validation Pipes).
+
+---
+
+## July 10 (Sprint Continued)
+
+### Today's goal
+Establecer la infraestructura de Inyección de Dependencias (DI) de NestJS para enlazar los adapters de persistencia concretos y las interfaces de repositorio del dominio, garantizando el desacoplamiento de la capa de aplicación.
+
+### Main decisions
+*   **DatabaseModule global:** Exponer el `PrismaService` como singleton a nivel global para reutilizar la conexión y evitar pérdidas/fugas en el pool de SQLite.
+*   **Factory Providers en Use Cases:** Para conservar los Use Cases como clases de TypeScript puras (Clean Architecture pura sin importaciones/decoradores de NestJS en la capa de aplicación), se configuran mediante `useFactory` y tokens de inyección basados en `Symbol` (`REPOSITORY_TOKENS`).
+*   **Módulo de infraestructura encapsulado:** `InfrastructureModule` expone directamente las instancias de los Use Cases ya instanciados y configurados, sirviendo como la frontera física donde se resuelve la inyección de dependencias.
+
+### Things I learned
+*   Los Factory Providers de NestJS son una excelente herramienta para preservar la pureza de la capa de Aplicación cuando no se desea contaminar las clases con decoradores de un framework específico (`@Injectable()`, `@Inject()`).
+
+### Open questions
+*   Ninguna.
+
 
