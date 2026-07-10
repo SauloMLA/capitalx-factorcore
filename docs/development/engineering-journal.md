@@ -69,4 +69,25 @@ Implementar los objetos de valor (Value Objects) core del dominio de factoraje y
 *   Ninguna.
 
 ### Next milestone
-Implementar el Commit 003: Agregados de Issuer y Debtor con sus respectivos puertos de repositorio.
+Implementar el Commit 003: Agregado de Cliente (Client).
+
+---
+
+## July 10 (Sprint Continued)
+
+### Today's goal
+Implementar el Agregado de Cliente (`Client`) bajo un enfoque Domain-First simplificado y definir su puerto de repositorio en el dominio.
+
+### Main decisions
+*   **Simplificación Operativa:** De acuerdo con la nueva directiva de diseño, se descartaron los agregados complejos de Deudor y Emisor y se unificó la contraparte operativa en el agregado root `Client`.
+*   **Atributos y Comportamiento:** El agregado `Client` encapsula `id`, `taxId` (Value Object), `name` (string) y `status` (ClientStatus ACTIVE/INACTIVE). Implementa validaciones de inicialización de negocio y mutadores controlados `activate()` y `deactivate()`.
+*   **Puerto de Repositorio:** Se definió la interfaz `ClientRepository` para la búsqueda por ID y TaxId, y almacenamiento de la entidad, desacoplada de cualquier ORM.
+
+### Things I learned
+*   Establecer primero el Agregado de Cliente simplifica enormemente las dependencias estructurales de las facturas que vendrán en el siguiente commit.
+
+### Open questions
+*   Ninguna.
+
+### Next milestone
+Implementar el Commit 004: Agregado de Factura (Invoice) con validación de fechas de vencimiento y deudor simplificado.
