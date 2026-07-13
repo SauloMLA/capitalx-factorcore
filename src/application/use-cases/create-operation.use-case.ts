@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { Operation } from '../../domain/entities/operation.entity';
 import { Invoice } from '../../domain/entities/invoice.entity';
 import { InvoiceFolio } from '../../domain/common/value-objects/invoice-folio.value-object';
@@ -8,7 +9,6 @@ import { OperationRepository } from '../../domain/repositories/operation.reposit
 import { ClientNotFoundException } from '../exceptions/client.exceptions';
 
 export interface InvoiceInput {
-  id: string;
   folio: string;
   debtorRfc: string;
   debtorName: string;
@@ -18,7 +18,6 @@ export interface InvoiceInput {
 }
 
 export interface CreateOperationCommand {
-  operationId: string;
   clientId: string;
   requestDate: Date;
   invoices: InvoiceInput[];
@@ -51,7 +50,7 @@ export class CreateOperationUseCase {
     // 3. Build Invoice entities — Value Objects validate their own fields
     const invoices = command.invoices.map((inv) =>
       Invoice.create(
-        inv.id,
+        randomUUID(),
         InvoiceFolio.create(inv.folio),
         TaxId.create(inv.debtorRfc),
         inv.debtorName,
@@ -64,7 +63,7 @@ export class CreateOperationUseCase {
     // 4. Delegate business validation and calculation to the Operation aggregate
     //    Operation.create throws OperationValidationException (with all errors) if any rule fails
     const operation = Operation.create(
-      command.operationId,
+      randomUUID(),
       client,
       invoices,
       command.requestDate,

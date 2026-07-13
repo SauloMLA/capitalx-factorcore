@@ -18,8 +18,13 @@ const CLIENT_RECORD = {
   updatedAt: NOW,
 };
 
-function mockPrisma(overrides: Partial<typeof clientRecordMock> = {}) {
-  const clientRecordMock = {
+type ClientRecordMock = {
+  upsert: jest.Mock;
+  findUnique: jest.Mock;
+};
+
+function mockPrisma(overrides: Partial<ClientRecordMock> = {}) {
+  const clientRecordMock: ClientRecordMock = {
     upsert: jest.fn().mockResolvedValue(undefined),
     findUnique: jest.fn().mockResolvedValue(null),
     ...overrides,

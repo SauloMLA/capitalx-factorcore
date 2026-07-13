@@ -20,19 +20,21 @@ class FakeClientRepository implements ClientRepository {
 describe('ApproveClientUseCase', () => {
   let repo: FakeClientRepository;
   let approveUseCase: ApproveClientUseCase;
+  let clientId: string;
 
   beforeEach(async () => {
     repo = new FakeClientRepository();
     approveUseCase = new ApproveClientUseCase(repo);
     // Pre-register a client
-    await new RegisterClientUseCase(repo).execute({
-      id: 'client-1', rfc: 'XYZ850101XXX', name: 'Test Corp', email: 'test@corp.mx',
+    const { id } = await new RegisterClientUseCase(repo).execute({
+      rfc: 'XYZ850101XXX', name: 'Test Corp', email: 'test@corp.mx',
     });
+    clientId = id;
   });
 
   it('should approve a PENDING client', async () => {
-    await approveUseCase.execute({ clientId: 'client-1' });
-    const approved = await repo.findById('client-1');
+    await approveUseCase.execute({ clientId });
+    const approved = await repo.findById(clientId);
     expect(approved?.valueStatus).toBe(ClientStatus.APPROVED);
     expect(approved?.isApproved()).toBe(true);
   });
@@ -44,9 +46,9 @@ describe('ApproveClientUseCase', () => {
   });
 
   it('should throw DomainException when approving an already approved client', async () => {
-    await approveUseCase.execute({ clientId: 'client-1' });
+    await approveUseCase.execute({ clientId });
     await expect(
-      approveUseCase.execute({ clientId: 'client-1' }),
+      approveUseCase.execute({ clientId }),
     ).rejects.toBeInstanceOf(DomainException);
   });
 });

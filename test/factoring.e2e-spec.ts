@@ -54,18 +54,17 @@ describe('Factoring API Integration (e2e)', () => {
 
   describe('POST /clientes & PATCH /clientes/:id/aprobar', () => {
     it('should register a client in pending status and then approve it', async () => {
-      const clientId = '123e4567-e89b-42d3-8456-426614174001';
-
       // 1. Register Client (Pending)
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post('/clientes')
         .send({
-          id: clientId,
           rfc: 'XYZ850101XXX',
           name: 'Compañia ABC S.A.',
           email: 'contacto@abc.mx',
         })
         .expect(201);
+      
+      const clientId = res.body.id;
 
       // Verify in database
       const client = await prisma.clientRecord.findUnique({ where: { id: clientId } });
@@ -86,7 +85,6 @@ describe('Factoring API Integration (e2e)', () => {
       await request(app.getHttpServer())
         .post('/clientes')
         .send({
-          id: '123e4567-e89b-42d3-8456-426614174002',
           rfc: 'INVALID-RFC',
           name: 'Company',
           email: 'test@company.com',
@@ -96,8 +94,7 @@ describe('Factoring API Integration (e2e)', () => {
 
     it('should reject registration when RFC already exists (409)', async () => {
       const clientPayload = {
-        id: '123e4567-e89b-42d3-8456-426614174003',
-        rfc: 'XYZ850101XXX',
+        rfc: 'DUP850101XXX',
         name: 'First Corp',
         email: 'first@corp.com',
       };
@@ -108,16 +105,16 @@ describe('Factoring API Integration (e2e)', () => {
         .post('/clientes')
         .send({
           ...clientPayload,
-          id: '123e4567-e89b-42d3-8456-426614174004',
+          name: 'Second',
         })
         .expect(409);
     });
 
     it('should reject approval of already approved client (422)', async () => {
-      const clientId = '123e4567-e89b-42d3-8456-426614174005';
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post('/clientes')
-        .send({ id: clientId, rfc: 'XYZ850101XXX', name: 'Corp', email: 'c@c.mx' });
+        .send({ rfc: 'WXY850101XXX', name: 'Corp', email: 'c@c.mx' });
+      const clientId = res.body.id;
 
       await request(app.getHttpServer()).patch(`/clientes/${clientId}/aprobar`).expect(200);
       await request(app.getHttpServer()).patch(`/clientes/${clientId}/aprobar`).expect(422);
@@ -127,19 +124,19 @@ describe('Factoring API Integration (e2e)', () => {
   // ─── Operations Flow ────────────────────────────────────────────────────────
 
   describe('POST /operaciones & GET /clientes/:id/resumen', () => {
-    const clientId = '123e4567-e89b-42d3-8456-426614174006';
+    let clientId: string;
     const requestDate = new Date('2026-07-10T12:00:00Z');
 
     beforeEach(async () => {
       // Create and approve client before operation tests
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post('/clientes')
-        .send({ id: clientId, rfc: 'XYZ850101XXX', name: 'Eligible Client', email: 'e@client.com' });
+        .send({ rfc: 'QWE850101XXX', name: 'Eligible Client', email: 'e@client.com' });
+      clientId = res.body.id;
       await request(app.getHttpServer()).patch(`/clientes/${clientId}/aprobar`).expect(200);
     });
 
     it('should create factoring operation and get accurate client summary metrics', async () => {
-      const opId = '123e4567-e89b-42d3-8456-426614174008';
       const issueDate = new Date('2026-07-01T00:00:00Z');
       const dueDate = new Date('2026-08-10T00:00:00Z'); // 31 days remaining term
 
@@ -147,12 +144,10 @@ describe('Factoring API Integration (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post('/operaciones')
         .send({
-          operationId: opId,
           clientId,
           requestDate,
           invoices: [
             {
-              id: '123e4567-e89b-42d3-8456-426614174009',
               folio: 'FOL-001',
               debtorRfc: 'DEF020202ABC',
               debtorName: 'Debtor S.A.',
@@ -165,7 +160,7 @@ describe('Factoring API Integration (e2e)', () => {
         .expect(201);
 
       // Verify response amounts
-      expect(res.body.operationId).toBe(opId);
+      expect(res.body.operationId).toBeDefined();
       expect(res.body.totalAmount).toBe(20000);
       expect(res.body.advancedAmount).toBe(17000); // 85%
       expect(res.body.commission).toBe(300); // 1.5%
@@ -182,8 +177,6 @@ describe('Factoring API Integration (e2e)', () => {
     });
 
     it('should reject operation if invoice folio is already financed (422)', async () => {
-      const opId1 = '123e4567-e89b-42d3-8456-426614174011';
-      const opId2 = '123e4567-e89b-42d3-8456-426614174012';
       const issueDate = new Date('2026-07-01T00:00:00Z');
       const dueDate = new Date('2026-08-10T00:00:00Z');
 
@@ -192,7 +185,6 @@ describe('Factoring API Integration (e2e)', () => {
         requestDate,
         invoices: [
           {
-            id: '123e4567-e89b-42d3-8456-426614174013',
             folio: 'FOL-DUP',
             debtorRfc: 'DEF020202ABC',
             debtorName: 'Debtor',
@@ -206,17 +198,13 @@ describe('Factoring API Integration (e2e)', () => {
       // First financing operation succeeds
       await request(app.getHttpServer())
         .post('/operaciones')
-        .send({ ...operationPayload, operationId: opId1 })
+        .send(operationPayload)
         .expect(201);
 
       // Second financing operation using the same folio fails
       const errRes = await request(app.getHttpServer())
         .post('/operaciones')
-        .send({
-          ...operationPayload,
-          operationId: opId2,
-          invoices: [{ ...operationPayload.invoices[0], id: '123e4567-e89b-42d3-8456-426614174014' }],
-        })
+        .send(operationPayload)
         .expect(422);
 
       expect(errRes.body.message).toContain('Operation validation failed');
