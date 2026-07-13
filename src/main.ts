@@ -18,11 +18,11 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
 
   const config = new DocumentBuilder()
-    .setTitle('Capital X Factoring API')
-    .setDescription('Clean architecture API for registering clients and financing operations.')
+    .setTitle('API de Factoraje Capital X')
+    .setDescription('API con Clean Architecture para registro de clientes y originación de operaciones financieras.')
     .setVersion('1.0.0')
-    .addTag('Clientes', 'Operations on clients (registration, approval, and summary)')
-    .addTag('Operaciones', 'Factoring operations and invoice validation')
+    .addTag('Clientes', 'Operaciones de clientes (registro, aprobación y resumen ejecutivo)')
+    .addTag('Operaciones', 'Originación de operaciones de factoraje y validación de facturas')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

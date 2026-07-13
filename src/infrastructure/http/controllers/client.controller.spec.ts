@@ -31,7 +31,6 @@ describe('ClientController', () => {
 
   it('should call register client use case with command', async () => {
     const payload = {
-      id: 'uuid-1',
       rfc: 'XYZ850101XXX',
       name: 'Test Name',
       email: 'test@email.com',

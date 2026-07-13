@@ -2,31 +2,31 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class OperationResponseDto {
   @ApiProperty({
-    description: 'The created operation ID',
+    description: 'UUID v4 generado para la operación',
     example: '923e4567-e89b-12d3-a456-426614174000',
   })
   operationId!: string;
 
   @ApiProperty({
-    description: 'Sum of all invoice amounts in the operation',
+    description: 'Suma de los montos de todas las facturas en la operación',
     example: 10000.0,
   })
   totalAmount!: number;
 
   @ApiProperty({
-    description: 'Advanced amount (85% of total)',
+    description: 'Monto adelantado (Aforo del 85% sobre el total)',
     example: 8500.0,
   })
   advancedAmount!: number;
 
   @ApiProperty({
-    description: 'Factoring fee commission (1.5% of total)',
+    description: 'Comisión cobrada por factoraje (1.5% sobre el total)',
     example: 150.0,
   })
   commission!: number;
 
   @ApiProperty({
-    description: 'Net amount to deposit (advanced - commission)',
+    description: 'Monto neto a depositar (monto adelantado - comisión)',
     example: 8350.0,
   })
   depositAmount!: number;

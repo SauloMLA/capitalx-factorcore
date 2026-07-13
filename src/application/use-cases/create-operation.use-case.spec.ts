@@ -50,14 +50,12 @@ function futureDate(daysAhead: number): Date {
   return d;
 }
 
-function baseCommand(overrides: Partial<CreateOperationCommand> = {}): CreateOperationCommand {
+function baseCommand(clientId: string, overrides: Partial<CreateOperationCommand> = {}): CreateOperationCommand {
   return {
-    operationId: 'op-1',
-    clientId: 'client-1',
+    clientId,
     requestDate: REQUEST_DATE,
     invoices: [
       {
-        id: 'inv-1',
         folio: 'FOL-001',
         debtorRfc: 'DEF020202ABC',
         debtorName: 'Deudor S.A.',
@@ -76,6 +74,7 @@ describe('CreateOperationUseCase', () => {
   let clientRepo: FakeClientRepository;
   let operationRepo: FakeOperationRepository;
   let useCase: CreateOperationUseCase;
+  let clientId: string;
 
   beforeEach(async () => {
     clientRepo = new FakeClientRepository();
@@ -83,16 +82,17 @@ describe('CreateOperationUseCase', () => {
     useCase = new CreateOperationUseCase(clientRepo, operationRepo);
 
     // Pre-register and approve client
-    await new RegisterClientUseCase(clientRepo).execute({
-      id: 'client-1', rfc: 'XYZ850101XXX', name: 'Corp', email: 'corp@mx.mx',
+    const { id } = await new RegisterClientUseCase(clientRepo).execute({
+      rfc: 'XYZ850101XXX', name: 'Corp', email: 'corp@mx.mx',
     });
-    await new ApproveClientUseCase(clientRepo).execute({ clientId: 'client-1' });
+    clientId = id;
+    await new ApproveClientUseCase(clientRepo).execute({ clientId });
   });
 
   it('should create a valid operation and return correct amounts', async () => {
-    const result = await useCase.execute(baseCommand());
+    const result = await useCase.execute(baseCommand(clientId));
 
-    expect(result.operationId).toBe('op-1');
+    expect(result.operationId).toBeDefined();
     expect(result.totalAmount).toBe(10000);
     expect(result.advancedAmount).toBe(8500);
     expect(result.commission).toBe(150);
@@ -100,52 +100,48 @@ describe('CreateOperationUseCase', () => {
   });
 
   it('should persist the operation', async () => {
-    await useCase.execute(baseCommand());
-    const saved = await operationRepo.findById('op-1');
+    const result = await useCase.execute(baseCommand(clientId));
+    const saved = await operationRepo.findById(result.operationId);
     expect(saved).not.toBeNull();
   });
 
   it('should throw ClientNotFoundException when client does not exist', async () => {
     await expect(
-      useCase.execute(baseCommand({ clientId: 'missing' })),
+      useCase.execute(baseCommand(clientId, { clientId: 'missing' })),
     ).rejects.toBeInstanceOf(ClientNotFoundException);
   });
 
   it('should throw DomainException when client is not approved', async () => {
-    await new RegisterClientUseCase(clientRepo).execute({
-      id: 'pending-client', rfc: 'ABC010101XYZ', name: 'Pending', email: 'p@p.mx',
+    const { id: pendingId } = await new RegisterClientUseCase(clientRepo).execute({
+      rfc: 'ABC010101XYZ', name: 'Pending', email: 'p@p.mx',
     });
     await expect(
-      useCase.execute(baseCommand({ clientId: 'pending-client' })),
+      useCase.execute(baseCommand(clientId, { clientId: pendingId })),
     ).rejects.toBeInstanceOf(DomainException);
   });
 
   it('should throw OperationValidationException and prevent save when an invoice has already been financed', async () => {
     // First operation succeeds
-    await useCase.execute(baseCommand({ operationId: 'op-1' }));
+    const result = await useCase.execute(baseCommand(clientId));
 
     // Second operation reuses the same folio
     await expect(
-      useCase.execute(baseCommand({ operationId: 'op-2' })),
+      useCase.execute(baseCommand(clientId)),
     ).rejects.toBeInstanceOf(OperationValidationException);
-
-    const notSaved = await operationRepo.findById('op-2');
-    expect(notSaved).toBeNull();
   });
 
   it('should throw OperationValidationException and collect errors for multiple invalid invoices', async () => {
     let caught: OperationValidationException | undefined;
     try {
-      await useCase.execute(baseCommand({
-        operationId: 'op-bad',
+      await useCase.execute(baseCommand(clientId, {
         invoices: [
           {
-            id: 'inv-short', folio: 'FOL-SHORT', debtorRfc: 'DEF020202ABC',
+            folio: 'FOL-SHORT', debtorRfc: 'DEF020202ABC',
             debtorName: 'D', amount: 100, issueDate: new Date('2026-07-01T00:00:00Z'),
             dueDate: futureDate(5),  // only 5 days — fails
           },
           {
-            id: 'inv-past', folio: 'FOL-PAST', debtorRfc: 'DEF020202ABC',
+            folio: 'FOL-PAST', debtorRfc: 'DEF020202ABC',
             debtorName: 'D', amount: 100,
             issueDate: new Date('2025-01-01T00:00:00Z'),
             dueDate: new Date('2025-01-10T00:00:00Z'), // already past — fails

@@ -48,32 +48,34 @@ describe('GetClientSummaryUseCase', () => {
   let clientRepo: FakeClientRepository;
   let operationRepo: FakeOperationRepository;
   let summaryUseCase: GetClientSummaryUseCase;
+  let clientId: string;
 
   beforeEach(async () => {
     clientRepo = new FakeClientRepository();
     operationRepo = new FakeOperationRepository();
     summaryUseCase = new GetClientSummaryUseCase(clientRepo, operationRepo);
 
-    await new RegisterClientUseCase(clientRepo).execute({
-      id: 'client-1', rfc: 'XYZ850101XXX', name: 'Corp', email: 'corp@mx.mx',
+    const { id } = await new RegisterClientUseCase(clientRepo).execute({
+      rfc: 'XYZ850101XXX', name: 'Corp', email: 'corp@mx.mx',
     });
-    await new ApproveClientUseCase(clientRepo).execute({ clientId: 'client-1' });
+    clientId = id;
+    await new ApproveClientUseCase(clientRepo).execute({ clientId });
 
     const createOp = new CreateOperationUseCase(clientRepo, operationRepo);
 
     await createOp.execute({
-      operationId: 'op-1', clientId: 'client-1', requestDate: REQUEST_DATE,
+      clientId, requestDate: REQUEST_DATE,
       invoices: [{
-        id: 'inv-1', folio: 'FOL-001', debtorRfc: 'DEF020202ABC',
+        folio: 'FOL-001', debtorRfc: 'DEF020202ABC',
         debtorName: 'Debtor', amount: 10000,
         issueDate: new Date('2026-07-01T00:00:00Z'), dueDate: futureDate(30),
       }],
     });
 
     await createOp.execute({
-      operationId: 'op-2', clientId: 'client-1', requestDate: REQUEST_DATE,
+      clientId, requestDate: REQUEST_DATE,
       invoices: [{
-        id: 'inv-2', folio: 'FOL-002', debtorRfc: 'DEF020202ABC',
+        folio: 'FOL-002', debtorRfc: 'DEF020202ABC',
         debtorName: 'Debtor', amount: 20000,
         issueDate: new Date('2026-07-01T00:00:00Z'), dueDate: futureDate(15),
       }],
@@ -81,27 +83,27 @@ describe('GetClientSummaryUseCase', () => {
   });
 
   it('should return correct operation count', async () => {
-    const summary = await summaryUseCase.execute('client-1');
+    const summary = await summaryUseCase.execute(clientId);
     expect(summary.operationCount).toBe(2);
   });
 
   it('should return accumulated advanced amount for all operations', async () => {
-    const summary = await summaryUseCase.execute('client-1');
+    const summary = await summaryUseCase.execute(clientId);
     // op-1: 10000 × 0.85 = 8500 | op-2: 20000 × 0.85 = 17000 → total = 25500
     expect(summary.totalAdvancedAmount).toBe(25500);
   });
 
   it('should return the nearest due date across all invoices', async () => {
-    const summary = await summaryUseCase.execute('client-1');
+    const summary = await summaryUseCase.execute(clientId);
     // FOL-002 is due in 15 days, FOL-001 in 30 days → nearest is FOL-002
     expect(summary.nearestDueDate?.getTime()).toBe(futureDate(15).getTime());
   });
 
   it('should return null nearestDueDate when client has no operations', async () => {
-    await new RegisterClientUseCase(clientRepo).execute({
-      id: 'client-2', rfc: 'GHI030303DEF', name: 'Empty Corp', email: 'e@e.mx',
+    const { id: client2Id } = await new RegisterClientUseCase(clientRepo).execute({
+      rfc: 'GHI030303DEF', name: 'Empty Corp', email: 'e@e.mx',
     });
-    const summary = await summaryUseCase.execute('client-2');
+    const summary = await summaryUseCase.execute(client2Id);
     expect(summary.operationCount).toBe(0);
     expect(summary.nearestDueDate).toBeNull();
   });

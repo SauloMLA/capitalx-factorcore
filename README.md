@@ -1,183 +1,127 @@
 # FactorCore
 
-Durante el desarrollo se priorizó el diseño del dominio y la documentación de decisiones técnicas antes de iniciar la implementación. El objetivo fue construir una solución mantenible, fácilmente extensible y con reglas de negocio claramente aisladas de la infraestructura.
+> *Durante este reto intenté acercarme más a cómo desarrollaría un servicio en una Fintech que a simplemente resolver cuatro endpoints.*
 
-> *"The business rules drive the design. Frameworks, databases, and libraries are implementation details."*
-
----
-
-## Project Status
-
-*   ✅ **Domain Modeling** (Lenguaje ubicuo, glosario y modelado de agregados)
-*   ✅ **Business Rules** (Cálculo de aforo del 85%, comisión del 1.5% e invariantes de fecha 15-120 días)
-*   ✅ **Architecture** (ADR-001 al ADR-003, modelo de dominio y segregación en capas)
-*   ✅ **Infrastructure** (Adapters de persistencia concretos de Prisma + SQLite y mapeadores explícitos)
-*   ✅ **Dependency Injection** (Módulos de NestJS desacoplados mediante proveedores fábrica)
-*   ✅ **HTTP Layer** (Controladores de clientes y operaciones, DTOs validados con class-validator)
-*   ✅ **Exception Handling** (Filtro global de excepciones con mapeos de errores de negocio a HTTP)
-*   ✅ **Swagger Docs** (OpenAPI interactivo documentando todos los endpoints en `/api`)
-*   ✅ **Integration Tests** (Suites unitarias y de integración de extremo a extremo con SQLite de prueba)
+**FactorCore** es un motor de originación financiera construido para el reto de Capital X. El diseño de este sistema prioriza el aislamiento estricto de las reglas de negocio y la protección de las invariantes por encima de las abstracciones tecnológicas.
 
 ---
 
-## Flujo de Datos E2E (`POST /operaciones`)
+## 🧠 Understanding the Problem
 
-El siguiente diagrama ilustra el flujo de control, validaciones y persistencia transaccional del sistema al originar una operación financiera:
+Al leer los requerimientos, quedó claro que **esto no era un CRUD**. Una API de factoraje no se trata simplemente de guardar datos en tablas, sino de proteger un estado financiero consistente. 
 
-```mermaid
-sequenceDiagram
-    actor Cliente
-    participant API as OperationController (HTTP)
-    participant UC as CreateOperationUseCase (Application)
-    participant CR as ClientRepository (Domain Port)
-    participant OR as OperationRepository (Domain Port)
-    participant AGG as Operation (Domain Aggregate Root)
-    participant DB as SQLite (Prisma Adapter)
+Las reglas críticas que dictaron el diseño fueron:
+*   Los clientes deben estar explícitamente aprobados antes de poder solicitar liquidez.
+*   Las facturas tienen vigencias estrictas (15 a 120 días calendario).
+*   Se debe prevenir, transaccionalmente, el doble financiamiento de una misma factura.
+*   El cálculo del aforo (85%) y la comisión (1.5%) deben ser atómicos.
 
-    Cliente->>API: POST /operaciones (JSON Request)
-    Note over API: Valida esquema e inicializa DTO (class-validator)
-    API->>UC: execute(Command)
+### Domain First
+Debido a la naturaleza crítica de estas invariantes, decidí modelar el dominio antes de escribir un solo controlador, configurar NestJS o diseñar la base de datos en Prisma. 
 
-    rect rgb(240, 240, 255)
-        Note over UC: Frontera Transaccional
-        UC->>CR: findById(clientId)
-        CR->>DB: Query Client
-        DB-->>CR: Client Record
-        CR-->>UC: Client Aggregate (APPROVED state)
-
-        UC->>OR: findFoliosByClientId(clientId)
-        OR->>DB: Query funded folios (folio select only)
-        DB-->>OR: string[] (Existing folios)
-        OR-->>UC: List of funded folios
-
-        Note over UC: Construye y valida Invoice Entities (15-120 días)
-        UC->>AGG: Operation.create(id, client, invoices, requestDate, fundedFolios)
-        Note over AGG: Valida invariantes del lote, folios duplicados y calcula montos (aforo 85% / com. 1.5%)
-        AGG-->>UC: Operation Aggregate Root
-
-        UC->>OR: save(operation)
-        OR->>DB: ACID Transaction (Upsert Operation + delete/create Invoices)
-        DB-->>OR: Commit Transaction
-    end
-
-    UC-->>API: OperationResult (total, advanced, commission, deposit)
-    API-->>Cliente: HTTP 201 Created (JSON Response)
-```
+Primero identifiqué cuáles eran las reglas que realmente daban valor al sistema (Agregados, Entidades y Objetos de Valor). Una vez aisladas, probadas y aseguradas esas reglas en TypeScript puro, el resto de la aplicación (bases de datos, controladores, frameworks) se convirtió simplemente en infraestructura alrededor del dominio.
 
 ---
 
-## Estructura del Proyecto
+## 🏗 Design Decisions
 
-*   **[PROJECT_GUIDE.md](PROJECT_GUIDE.md):** La guía principal y única fuente de verdad técnica y de negocio del proyecto. Contiene la visión del producto, glosario, reglas detalladas e historial de decisiones de diseño.
-*   **[docs/](docs/):** Documentación técnica de soporte:
-    *   **[architecture/](docs/architecture/):** ADRs (Registros de Decisiones de Arquitectura) y el [modelo de dominio](docs/architecture/domain-model.md).
-    *   **[development/](docs/development/):** Diario de ingeniería ([engineering-journal.md](docs/development/engineering-journal.md)) y roadmap del proyecto.
-*   **`src/`:** Código fuente estructurado bajo Clean Architecture:
-    *   `src/domain/`: Entidades, Agregados, Value Objects y puertos de repositorios sin dependencias externas.
-    *   `src/application/`: Casos de uso de negocio puros, independientes del framework.
-    *   `src/infrastructure/`: Adapters concretos de persistencia (Prisma), DTOs, controladores NestJS y filtros de excepción global.
+*   **¿Por qué Domain-Driven Design (DDD)?** En una Fintech los frameworks y las bases de datos cambian, pero las reglas del dinero no. Aislar el negocio asegura que la validación de montos o cálculo de comisiones nunca se acople a un Request HTTP.
+*   **¿Por qué Clean Architecture?** Para que el caso de uso se lea como un flujo de negocio puro y la persistencia sea un detalle intercambiable. Esto facilitó escribir pruebas unitarias que validan la originación en milisegundos.
+*   **¿Por qué Aggregate Roots?** Un lote de facturas financiado (`Operation`) tiene invariantes atómicas conjuntas. El Aggregate actúa como frontera transaccional garantizando que la operación se aprueba por completo o falla por completo.
+*   **¿Por qué Value Objects?** Un RFC no es un simple `string`; tiene reglas (12 caracteres). Al encapsularlos, evitamos validaciones condicionales dispersas en los controladores y garantizamos consistencia desde el constructor.
+*   **¿Por qué NestJS para un proyecto tan pequeño?** Aunque Express hubiese bastado, NestJS provee una Inyección de Dependencias (DI) robusta de caja y módulos predecibles. Esto me permitió conectar las interfaces del dominio con la infraestructura de Prisma de forma muy elegante usando *Factory Providers*.
 
 ---
 
-## Guía de Instalación y Ejecución
+## ⚖️ Trade-offs
 
-### 1. Requisitos
-*   Node.js (versión >= 20)
-*   npm
+En ingeniería de software no hay decisiones perfectas. Estas son las restricciones que asumí conscientemente para este reto:
 
-### 2. Configuración e Inicialización Rápida
-Clona el repositorio, instala dependencias e inicializa la base de datos de manera automatizada:
+*   **SQLite (en lugar de PostgreSQL):** No porque sea la mejor base de datos para producción (carece de row-level locks robustos), sino porque mejora muchísimo la experiencia del evaluador. Permite clonar, instalar y correr el proyecto completo en 30 segundos sin necesidad de configurar contenedores Docker. La arquitectura limpia garantiza que migrar a PostgreSQL solo requeriría escribir un nuevo adapter.
+*   **Prisma ORM:** Seleccionado para generar un esquema de base de datos rápido y seguro con tipos estáticos fuertes. Delegué el control transaccional ACID (`$transaction`) al adapter de Prisma para simplificar los Use Cases.
+*   **Mappers manuales:** Convertir modelos de Prisma a Entidades de Dominio toma tiempo y genera código adicional (*boilerplate*). Asumí este costo intencionalmente para garantizar que el modelo de dominio permanezca 100% puro y ajeno a cambios en las tablas de la base de datos.
+
+---
+
+## 🤖 Uso de IA como Herramienta de Ingeniería
+
+Utilicé un flujo de desarrollo asistido por IA mediante un orquestador (Antigravity/Gemini) para acelerar tareas repetitivas, mantener contexto técnico entre iteraciones y explorar alternativas de implementación.
+
+Las decisiones de arquitectura, el modelo de dominio, los trade-offs y las reglas de negocio fueron iteradas y refinadas manualmente antes de incorporarse al proyecto. La IA actuó estrictamente como un acelerador de productividad; las decisiones finales y el diseño del sistema permanecieron en todo momento bajo criterio de ingeniería.
+
+---
+
+## 🚀 Evaluating the API
+
+El flujo completo del negocio puede probarse localmente en menos de dos minutos siguiendo estos pasos.
+
+### 1. Iniciar la aplicación
+
 ```bash
-# Copia la plantilla de configuración de variables de entorno
 cp .env.example .env
-
-# Instala todas las dependencias
 npm install
-
-# Inicializa la base de datos SQLite y genera el cliente Prisma
 npm run db:setup
-```
-
-### 3. Ejecución de Pruebas
-El proyecto tiene un alto estándar de calidad con cobertura en todas las capas:
-```bash
-# Ejecutar todas las pruebas unitarias (Dominio, Casos de uso, Mapeadores)
-npm run test
-
-# Ejecutar las pruebas de integración de extremo a extremo (E2E) contra base de datos aislada
-npm run test:e2e
-```
-
-### 4. Iniciar el Servidor
-```bash
-# Iniciar la aplicación NestJS en modo desarrollo (Puerto 3000 por defecto)
 npm run start:dev
 ```
 
-### 5. Documentación Interactiva de la API (Swagger)
-Con el servidor encendido, puedes acceder a la interfaz interactiva de Swagger y probar los endpoints directamente en:
-👉 [http://localhost:3000/api](http://localhost:3000/api)
+Abre **[http://localhost:3000/api](http://localhost:3000/api)** para ver y utilizar la documentación interactiva Swagger. Alternativamente, puedes usar `curl` desde la consola:
+
+### 2. Flujo E2E desde consola
+
+**A) Registrar un Cliente**
+```bash
+curl -X POST http://localhost:3000/clientes \
+  -H "Content-Type: application/json" \
+  -d '{
+    "rfc": "CAP220101XYZ",
+    "name": "Capital Partner S.A.",
+    "email": "partner@capital.mx"
+  }'
+```
+*(Copia el `id` devuelto para el siguiente paso)*
+
+**B) Aprobar al Cliente**
+```bash
+# Reemplaza <CLIENT_ID> con el UUID devuelto en el paso anterior
+curl -X PATCH http://localhost:3000/clientes/<CLIENT_ID>/aprobar
+```
+
+**C) Crear una Operación (Financiar Facturas)**
+```bash
+curl -X POST http://localhost:3000/operaciones \
+  -H "Content-Type: application/json" \
+  -d '{
+    "clientId": "<CLIENT_ID>",
+    "requestDate": "2026-07-13T12:00:00Z",
+    "invoices": [
+      {
+        "folio": "FAC-001",
+        "debtorRfc": "DEF020202ABC",
+        "debtorName": "Distribuidora Nacional S.A.",
+        "amount": 250000.50,
+        "issueDate": "2026-07-01T00:00:00Z",
+        "dueDate": "2026-08-30T00:00:00Z"
+      }
+    ]
+  }'
+```
 
 ---
 
-## Endpoints Disponibles e Interacción
+## 📚 Documentación Técnica
 
-### 1. `POST /clientes` (Registro de cliente)
-Crea una empresa proveedora. Inicia en estado `PENDING`.
-*   **Request Example:**
-    ```json
-    {
-      "id": "123e4567-e89b-42d3-8456-426614174000",
-      "rfc": "XYZ850101XXX",
-      "name": "Consorcio Industrial S.A.",
-      "email": "contacto@consorcio.mx"
-    }
-    ```
+*   **[ARCHITECTURE.md](ARCHITECTURE.md):** Diagrama detallado de las capas, flujo de datos, modelo de dominio y justificación técnica de los Agregados.
+*   **[PROJECT_GUIDE.md](PROJECT_GUIDE.md):** Fuente de verdad del producto. Contiene el lenguaje ubicuo y las invariantes de negocio explícitas de la API.
 
-### 2. `PATCH /clientes/{id}/aprobar` (Aprobación de cliente)
-Autoriza al cliente para poder realizar operaciones de factoraje.
-*   **URL Parameter:** `id` (UUID v4)
-*   **Response:** HTTP `200 OK`
+---
 
-### 3. `POST /operaciones` (Originación de operación)
-Envía un lote de facturas para financiamiento. Realiza todas las validaciones e invariantes de negocio de manera atómica.
-*   **Request Example:**
-    ```json
-    {
-      "operationId": "923e4567-e89b-42d3-8456-426614174000",
-      "clientId": "123e4567-e89b-42d3-8456-426614174000",
-      "requestDate": "2026-07-10T12:00:00Z",
-      "invoices": [
-        {
-          "id": "223e4567-e89b-12d3-a456-426614174001",
-          "folio": "FOL-100",
-          "debtorRfc": "DEF020202ABC",
-          "debtorName": "Distribuidora del Norte S.A.",
-          "amount": 10000.0,
-          "issueDate": "2026-07-01T00:00:00Z",
-          "dueDate": "2026-08-15T00:00:00Z"
-        }
-      ]
-    }
-    ```
-*   **Response Example (201 Created):**
-    ```json
-    {
-      "operationId": "923e4567-e89b-42d3-8456-426614174000",
-      "totalAmount": 10000.0,
-      "advancedAmount": 8500.0,
-      "commission": 150.0,
-      "depositAmount": 8350.0
-    }
-    ```
+## 🔮 If I had more time...
 
-### 4. `GET /clientes/{id}/resumen` (Resumen métrico de cliente)
-Obtiene el consolidado ejecutivo de la actividad financiera del cliente.
-*   **Response Example (200 OK):**
-    ```json
-    {
-      "operationCount": 1,
-      "totalAdvancedAmount": 8500.0,
-      "nearestDueDate": "2026-08-15T00:00:00Z"
-    }
-    ```
+Si este fuese un servicio en camino a producción y no una prueba técnica acotada, estas serían las siguientes áreas de mejora estructural:
+
+*   **PostgreSQL & Docker Compose:** Migrar de SQLite a un motor robusto preparado para alta concurrencia y despliegue inmutable con contenedores.
+*   **Optimistic Locking:** Implementar un campo `version` en las entidades de base de datos para prevenir condiciones de carrera al actualizar estados de clientes o aprobar facturas simultáneamente.
+*   **CI/CD Pipeline:** Acciones de GitHub automatizadas ejecutando linters, test suites, cobertura y construcción de imágenes Docker en cada PR.
+*   **Observabilidad & Health Checks:** Integración con Prometheus/Grafana y endpoints nativos (`/health`) para monitoreo de uptime y uso de CPU/RAM de NestJS.
+*   **Rate Limiting & API Keys:** Asegurar los endpoints públicos para prevenir abuso de peticiones mediante políticas HTTP 429 (Too Many Requests).
+*   **Caché Distribuida (Redis):** Cachear el endpoint `GET /clientes/:id/resumen` para consultas concurrentes pesadas, invalidando la caché sólo tras originar una nueva operación.

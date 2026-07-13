@@ -2,19 +2,19 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class ClientSummaryResponseDto {
   @ApiProperty({
-    description: 'Total number of operations created for the client',
+    description: 'Número total de operaciones fondeadas para este cliente',
     example: 3,
   })
   operationCount!: number;
 
   @ApiProperty({
-    description: 'Accumulated advanced amount across all operations',
+    description: 'Suma del monto adelantado acumulado en todas las operaciones',
     example: 25500.00,
   })
   totalAdvancedAmount!: number;
 
   @ApiProperty({
-    description: 'Nearest invoice due date across all operations',
+    description: 'Fecha de vencimiento más próxima de todas las facturas del cliente',
     example: '2026-08-15T00:00:00Z',
     nullable: true,
   })

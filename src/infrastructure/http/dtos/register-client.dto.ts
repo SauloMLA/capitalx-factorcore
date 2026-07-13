@@ -2,17 +2,10 @@ import { IsEmail, IsNotEmpty, IsString, Matches, IsUUID } from 'class-validator'
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterClientDto {
-  @ApiProperty({
-    description: 'Unique client ID in UUID v4 format',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @IsUUID('4', { message: 'ID must be a valid UUID v4' })
-  @IsNotEmpty()
-  id!: string;
 
   @ApiProperty({
-    description: '12-character moral person Mexican Tax ID (RFC)',
-    example: 'XYZ850101XXX',
+    description: 'RFC de Persona Moral en México (12 caracteres alfanuméricos)',
+    example: 'CAP220101XYZ',
   })
   @IsString()
   @IsNotEmpty()
@@ -22,16 +15,16 @@ export class RegisterClientDto {
   rfc!: string;
 
   @ApiProperty({
-    description: 'Company legal name',
-    example: 'Capital X Factor S.A.',
+    description: 'Nombre legal o razón social de la empresa',
+    example: 'Capital Partner S.A.',
   })
   @IsString()
   @IsNotEmpty()
   name!: string;
 
   @ApiProperty({
-    description: 'Company primary contact email',
-    example: 'contacto@capitalx.mx',
+    description: 'Correo electrónico de contacto principal de la empresa',
+    example: 'partner@capital.mx',
   })
   @IsEmail({}, { message: 'Must be a valid email address' })
   @IsNotEmpty()
