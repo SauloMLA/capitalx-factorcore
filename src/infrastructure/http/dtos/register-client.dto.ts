@@ -1,6 +1,14 @@
-import { IsEmail, IsNotEmpty, IsString, Matches, IsUUID } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
+/**
+ * DTO (Objeto de Transferencia de Datos) para registrar clientes.
+ * Capa: HTTP / Presentación (Http Layer)
+ * 
+ * ¿Qué responsabilidad tiene?
+ * Definir la estructura esperada y validar la sintaxis de los datos que llegan
+ * desde el exterior al intentar registrar un cliente.
+ */
 export class RegisterClientDto {
 
   @ApiProperty({
@@ -9,6 +17,7 @@ export class RegisterClientDto {
   })
   @IsString()
   @IsNotEmpty()
+  // Validación estricta a nivel HTTP del formato RFC
   @Matches(/^[A-ZÑ&]{3}[0-9]{6}[A-Z0-9]{3}$/i, {
     message: 'RFC must be a valid 12-character Mexican moral person RFC (e.g. ABC010101XYZ)',
   })

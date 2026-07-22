@@ -5,12 +5,12 @@ import { RegisterClientUseCase } from '../application/use-cases/register-client.
 import { ApproveClientUseCase } from '../application/use-cases/approve-client.use-case';
 import { CreateOperationUseCase } from '../application/use-cases/create-operation.use-case';
 import { GetClientSummaryUseCase } from '../application/use-cases/get-client-summary.use-case';
+import { RegisterUserUseCase } from '../application/use-cases/register-user.use-case';
 
 describe('InfrastructureModule Dependency Injection Wiring', () => {
   let moduleRef: TestingModule;
 
   beforeEach(async () => {
-    // Mock PrismaService to avoid connecting to a real SQLite database during compile/DI tests
     const prismaMock = {
       $connect: jest.fn().mockResolvedValue(undefined),
       $disconnect: jest.fn().mockResolvedValue(undefined),
@@ -50,5 +50,10 @@ describe('InfrastructureModule Dependency Injection Wiring', () => {
   it('should resolve GetClientSummaryUseCase', () => {
     const useCase = moduleRef.get<GetClientSummaryUseCase>(GetClientSummaryUseCase);
     expect(useCase).toBeInstanceOf(GetClientSummaryUseCase);
+  });
+
+  it('should resolve RegisterUserUseCase', () => {
+    const useCase = moduleRef.get<RegisterUserUseCase>(RegisterUserUseCase);
+    expect(useCase).toBeInstanceOf(RegisterUserUseCase);
   });
 });

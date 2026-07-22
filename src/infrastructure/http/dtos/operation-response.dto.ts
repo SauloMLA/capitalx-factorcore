@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+/**
+ * DTO para la respuesta de creación de Operación.
+ * Capa: HTTP / Presentación (Http Layer)
+ * 
+ * ¿Qué responsabilidad tiene?
+ * Dar formato de salida y documentar con Swagger los resultados consolidados de una originación exitosa.
+ */
 export class OperationResponseDto {
   @ApiProperty({
     description: 'UUID v4 generado para la operación',

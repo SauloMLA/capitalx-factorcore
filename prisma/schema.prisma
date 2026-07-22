@@ -20,6 +20,7 @@ model ClientRecord {
   updatedAt DateTime @updatedAt
 
   operations OperationRecord[]
+  users      UserRecord[]
 
   @@map("clients")
 }
@@ -53,4 +54,38 @@ model InvoiceRecord {
   operation OperationRecord @relation(fields: [operationId], references: [id])
 
   @@map("invoices")
+}
+
+model UserRecord {
+  id           String   @id
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("OPERATOR") // "ADMINISTRATOR" | "OPERATOR"
+  isActive     Boolean  @default(true)
+  clientId     String?  // Null para Administradores de Mesa de Control
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  client        ClientRecord?       @relation(fields: [clientId], references: [id])
+  refreshTokens RefreshTokenRecord[]
+
+  @@index([email])
+  @@index([clientId])
+  @@map("users")
+}
+
+model RefreshTokenRecord {
+  id        String   @id
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user UserRecord @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
 }

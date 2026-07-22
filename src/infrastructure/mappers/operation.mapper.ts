@@ -5,22 +5,30 @@ import { InvoiceFolio } from '../../domain/common/value-objects/invoice-folio.va
 import { TaxId } from '../../domain/common/value-objects/tax-id.value-object';
 import { Money } from '../../domain/common/value-objects/money.value-object';
 
+// Tipo de utilidad que combina un registro de Operación con su listado de Facturas físicas (JOIN de base de datos)
 export type OperationRecordWithInvoices = OperationRecord & { invoices: InvoiceRecord[] };
 
 /**
- * Manual bi-directional mapper between Prisma OperationRecord (with nested invoices)
- * and the Operation domain aggregate.
- *
- * This is the ONLY file that knows about both layers simultaneously.
- * Keeps calculated amounts in the persistence layer to avoid re-computing on every read.
+ * MAPPER DE OPERACIÓN (OperationMapper)
+ * Capa: Infraestructura (Infrastructure Layer)
+ * 
+ * ¿Qué responsabilidad tiene?
+ * Traducir el Agregado de Dominio `Operation` (que contiene entidades ricas y lógica de negocio) 
+ * a tablas planas de persistencia (`OperationRecord` e `InvoiceRecord`) y viceversa.
+ * 
+ * Defensa en entrevista:
+ * "Esta clase traduce la estructura relacional anidada de la base de datos a objetos del dominio. 
+ * Guarda los montos calculados (como la comisión y el depósito) en columnas de la base de datos 
+ * para evitar recalcularlos en tiempo real cada vez que leemos el historial del cliente (optimizando 
+ * el rendimiento de las lecturas)."
  */
 export class OperationMapper {
   /**
-   * Reconstructs an Operation aggregate from a Prisma record with its invoices.
-   * Uses Operation.reconstitute to skip re-validation — the data was already
-   * validated when the operation was first created.
+   * Traduce de persistencia a Dominio (Lectura).
+   * Convierte la operación relacional y sus facturas asociadas a entidades de dominio reconstituidas.
    */
   static toDomain(record: OperationRecordWithInvoices): Operation {
+    // 1. Mapear y reconstituir cada factura individual
     const invoices = record.invoices.map((inv) =>
       Invoice.reconstitute(
         inv.id,
@@ -33,6 +41,7 @@ export class OperationMapper {
       ),
     );
 
+    // 2. Reconstituir el Agregado de la Operación con sus facturas y montos guardados
     return Operation.reconstitute(
       record.id,
       record.clientId,
@@ -45,8 +54,8 @@ export class OperationMapper {
   }
 
   /**
-   * Converts an Operation aggregate to a plain persistence object.
-   * Amounts are extracted from the domain Money value objects.
+   * Traduce de Dominio a persistencia (Escritura).
+   * Desestructura el Agregado Operation para producir dos registros planos listos para las tablas SQL.
    */
   static toPersistence(operation: Operation): {
     operationRecord: {
@@ -68,6 +77,7 @@ export class OperationMapper {
       dueDate: Date;
     }>;
   } {
+    // Registro plano de la operación
     const operationRecord = {
       id: operation.valueId,
       clientId: operation.valueClientId,
@@ -77,6 +87,7 @@ export class OperationMapper {
       depositAmount: operation.valueDepositAmount.value,
     };
 
+    // Arreglo de registros planos de facturas individuales
     const invoiceRecords = operation.valueInvoices.map((inv) => ({
       id: inv.valueId,
       operationId: operation.valueId,

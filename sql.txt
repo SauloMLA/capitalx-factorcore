@@ -1,0 +1,27 @@
+SELECT * FROM factoraje_prueba.clientes 
+WHERE email = 'jorge.mendez@cgamma.mx' OR razon_social LIKE '%Gamma%';
+
+
+SELECT * FROM factoraje_prueba.onboarding_status 
+WHERE cliente_id = 14 
+ORDER BY fecha_actualizacion DESC;
+
+SELECT * FROM factoraje_prueba.onboarding_status 
+WHERE cliente_id = 4 
+ORDER BY fecha_actualizacion DESC;
+
+
+SELECT cliente_id, razon_social, rfc, email 
+FROM factoraje_prueba.clientes 
+WHERE rfc = 'CGA150312QX8';
+
+SELECT * FROM factoraje_prueba.operaciones
+WHERE cliente_id = 4;
+
+SELECT cliente_id, razon_social, rfc, email, fecha_registro 
+FROM factoraje_prueba.clientes 
+WHERE rfc = 'CGA150312QX8';
+
+SELECT cliente_id, razon_social, rfc, email, fecha_registro 
+FROM factoraje_prueba.clientes 
+WHERE rfc = (SELECT rfc FROM factoraje_prueba.clientes WHERE cliente_id = 14);

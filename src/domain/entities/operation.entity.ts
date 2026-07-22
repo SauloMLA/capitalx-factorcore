@@ -7,6 +7,22 @@ import {
   OperationValidationException,
 } from '../common/exceptions/operation-validation.exception';
 
+/**
+ * AGREGADO / ENTIDAD RAÍZ: Operación (Operation)
+ * Capa: Dominio (Domain Layer)
+ * 
+ * ¿Qué responsabilidad tiene?
+ * Es el bloque principal y frontera transaccional de nuestro sistema financiero.
+ * Agrupa un lote de facturas de un cliente y evalúa si todo el lote cumple con las reglas del negocio.
+ * Si una sola factura no pasa las validaciones, rechaza toda la operación.
+ * Realiza los cálculos consolidados de aforo (85%), comisión (1.5%) y depósito neto.
+ * 
+ * Defensa en entrevista:
+ * "La Operación actúa como un Aggregate Root. Garantiza la consistencia del lote de facturas,
+ * evitando que existan facturas duplicadas en el lote o folios que ya hayan sido financiados 
+ * en el pasado (evita doble financiamiento). Todas las matemáticas de cobro ocurren aquí adentro
+ * de manera inmutable."
+ */
 export class Operation {
   private readonly id: string;
   private readonly clientId: string;
@@ -34,20 +50,7 @@ export class Operation {
     this.depositAmount = depositAmount;
   }
 
-  /**
-   * Creates and validates a new Operation.
-   *
-   * The Application Layer is responsible for:
-   *   - finding the client (throws if not found)
-   *   - providing existing financed folios for this client
-   *
-   * Operation is responsible for:
-   *   - verifying the client is APPROVED
-   *   - validating every invoice against business rules
-   *   - preventing duplicate financing via existingFolios
-   *   - rejecting the whole operation if any invoice fails
-   *   - calculating all monetary amounts
-   */
+  // Fábrica estática: el único punto para crear y validar una nueva operación
   public static create(
     id: string,
     client: Client,
@@ -62,9 +65,13 @@ export class Operation {
       throw new DomainException('Operation must contain at least one invoice');
     }
 
+    // 1. Validar que el cliente asociado esté aprobado (RD-OP-001)
     Operation.validateClientIsApproved(client);
+
+    // 2. Validar detalladamente cada factura del lote
     Operation.validateInvoices(invoices, requestDate, existingFolios);
 
+    // 3. Si las validaciones pasan, calcular las sumas, comisiones y depósito
     const amounts = Operation.calculateAmounts(invoices);
 
     return new Operation(
@@ -79,10 +86,8 @@ export class Operation {
   }
 
   /**
-   * Reconstructs an Operation from persisted data.
-   * Used exclusively by the persistence Mapper — skips all business-rule validation
-   * since the data was validated at creation time.
-   * Restores pre-calculated amounts directly to avoid floating-point re-computation.
+   * Reconstitución: restaura una operación histórica desde la base de datos sin ejecutar validaciones de negocio.
+   * Utilizado únicamente por el Mapper de Infraestructura.
    */
   public static reconstitute(
     id: string,
@@ -96,16 +101,14 @@ export class Operation {
     return new Operation(id, clientId, invoices, totalAmount, advancedAmount, commission, depositAmount);
   }
 
-  // ─── Business Rule: Client must be APPROVED ────────────────────────────────
-
+  // Regla RD-OP-001: El cliente debe estar APPROVED para operar
   private static validateClientIsApproved(client: Client): void {
     if (!client.isApproved()) {
       throw new DomainException('Client must be approved before creating an operation');
     }
   }
 
-  // ─── Business Rule: All invoices must pass; collect all errors ────────────
-
+  // Valida el lote de facturas acumulando todos los errores encontrados
   private static validateInvoices(
     invoices: Invoice[],
     requestDate: Date,
@@ -117,12 +120,12 @@ export class Operation {
     for (const invoice of invoices) {
       const folio = invoice.valueFolio.value;
 
-      // Rule: amount > 0
+      // Regla RD-INV-001: El monto de cada factura debe ser estrictamente positivo
       if (invoice.valueAmount.value <= 0) {
         errors.push({ folio, reason: 'Amount must be greater than zero' });
       }
 
-      // Rule: issue date must not be in the future
+      // Regla RD-INV-002: La fecha de emisión no puede ser futura respecto al día de hoy (requestDate)
       const issueMidnight = Date.UTC(
         invoice.valueIssueDate.getUTCFullYear(),
         invoice.valueIssueDate.getUTCMonth(),
@@ -137,7 +140,7 @@ export class Operation {
         errors.push({ folio, reason: 'Issue date cannot be in the future' });
       }
 
-      // Rule: due date must be after today
+      // Regla RD-INV-002: La fecha de vencimiento debe ser posterior a la fecha de hoy
       const dueMidnight = Date.UTC(
         invoice.valueDueDate.getUTCFullYear(),
         invoice.valueDueDate.getUTCMonth(),
@@ -147,7 +150,7 @@ export class Operation {
         errors.push({ folio, reason: 'Due date must be a future date' });
       }
 
-      // Rule: remaining term between 15 and 120 days
+      // Regla RD-INV-003: El plazo de vigencia debe encontrarse estrictamente entre 15 y 120 días calendario
       if (!invoice.isEligibleForFinancing(requestDate)) {
         errors.push({
           folio,
@@ -155,45 +158,48 @@ export class Operation {
         });
       }
 
-      // Rule: no duplicate folios within this operation
+      // Regla RD-OP-002: Previene duplicación de folios de factura dentro de este mismo lote/operación
       if (seenFolios.has(folio)) {
         errors.push({ folio, reason: 'Duplicate folio within the same operation' });
       }
       seenFolios.add(folio);
 
-      // Rule: folio not already financed for this client in a previous operation
+      // Regla RD-OP-002: Previene duplicación contra folios de facturas ya financiados previamente por el cliente
       if (existingFolios.includes(folio)) {
         errors.push({ folio, reason: 'Invoice folio has already been financed' });
       }
     }
 
+    // Si encontramos algún error en las facturas, lanzamos la excepción colectora
     if (errors.length > 0) {
       throw new OperationValidationException(errors);
     }
   }
 
-  // ─── Business Rule: Fixed-rate calculations ───────────────────────────────
-
+  // Regla RD-OP-003: Fórmulas matemáticas de factoraje
   private static calculateAmounts(invoices: Invoice[]): {
     totalAmount: Money;
     advancedAmount: Money;
     commission: Money;
     depositAmount: Money;
   } {
+    // 1. Sumar los montos de todas las facturas
     const total = invoices.reduce(
       (sum, inv) => sum.add(inv.valueAmount),
       Money.create(0),
     );
 
-    const advanced = total.multiply(0.85);     // monto_adelantado = total × 0.85
-    const commission = total.multiply(0.015);  // comisión         = total × 0.015
-    const deposit = advanced.subtract(commission); // monto_a_depositar = adelantado − comisión
+    // 2. Monto Adelantado = Total × 85% (Aforo)
+    const advanced = total.multiply(0.85);
+    // 3. Comisión = Total × 1.5% (Tasa fija de servicio)
+    const commission = total.multiply(0.015);
+    // 4. Monto a Depositar = Monto Adelantado − Comisión
+    const deposit = advanced.subtract(commission);
 
     return { totalAmount: total, advancedAmount: advanced, commission, depositAmount: deposit };
   }
 
-  // ─── Getters ──────────────────────────────────────────────────────────────
-
+  // Getters para exponer atributos de forma inmutable
   public get valueId(): string {
     return this.id;
   }

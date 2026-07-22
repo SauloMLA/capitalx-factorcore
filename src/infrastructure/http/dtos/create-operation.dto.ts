@@ -12,6 +12,9 @@ import {
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
+/**
+ * DTO para la validación y transporte de cada factura dentro del lote de origen.
+ */
 export class InvoiceInputDto {
   @ApiProperty({
     description: 'Folio o referencia única de la factura',
@@ -27,6 +30,7 @@ export class InvoiceInputDto {
   })
   @IsString()
   @IsNotEmpty()
+  // Valida que el RFC del deudor que debe pagar la factura cumpla con el formato de Persona Moral
   @Matches(/^[A-ZÑ&]{3}[0-9]{6}[A-Z0-9]{3}$/i, {
     message: 'Debtor RFC must be a valid 12-character Mexican moral person RFC',
   })
@@ -52,6 +56,7 @@ export class InvoiceInputDto {
     description: 'Fecha de emisión de la factura (formato ISO)',
     example: '2026-07-01T00:00:00Z',
   })
+  // Type indica a class-transformer que parsee el texto JSON a una instancia de Date real
   @Type(() => Date)
   @IsDate({ message: 'Issue date must be a valid date' })
   @IsNotEmpty()
@@ -67,6 +72,14 @@ export class InvoiceInputDto {
   dueDate!: Date;
 }
 
+/**
+ * DTO de entrada para la creación de una operación de factoraje.
+ * Capa: HTTP / Presentación (Http Layer)
+ * 
+ * ¿Qué responsabilidad tiene?
+ * Validar la sintaxis y los tipos de datos de la solicitud HTTP POST /operaciones.
+ * Asegura que se envíe un lote de facturas estructurado y un ID de cliente válido.
+ */
 export class CreateOperationDto {
   @ApiProperty({
     description: 'ID único del cliente previamente aprobado (UUID v4)',
@@ -90,6 +103,7 @@ export class CreateOperationDto {
     type: [InvoiceInputDto],
   })
   @IsArray()
+  // ValidateNested obliga a validador a recorrer y comprobar cada InvoiceInputDto dentro del arreglo
   @ValidateNested({ each: true })
   @Type(() => InvoiceInputDto)
   invoices!: InvoiceInputDto[];

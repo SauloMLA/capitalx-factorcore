@@ -3,6 +3,21 @@ import { TaxId } from '../common/value-objects/tax-id.value-object';
 import { Money } from '../common/value-objects/money.value-object';
 import { DomainException } from '../common/exceptions/domain.exception';
 
+/**
+ * ENTIDAD: Factura (Invoice)
+ * Capa: Dominio (Domain Layer)
+ * 
+ * ¿Qué responsabilidad tiene?
+ * Representar un documento por cobrar que es cedido por el cliente.
+ * Almacena los folios, montos, plazos de vigencia y datos del deudor de forma estructurada.
+ * Realiza cálculos temporales exactos para decidir si la factura es elegible.
+ * 
+ * Defensa en entrevista:
+ * "La factura es una entidad interna del agregado Operation. Se auto-valida al crearse, 
+ * asegurando que el deudor tenga nombre y que la fecha de vencimiento sea posterior a la de emisión. 
+ * El método getRemainingDays realiza cálculos limpios de días calendario a la medianoche (UTC) 
+ * para evadir desajustes horarios en servidores."
+ */
 export class Invoice {
   private readonly id: string;
   private readonly folio: InvoiceFolio;
@@ -30,6 +45,7 @@ export class Invoice {
     this.dueDate = dueDate;
   }
 
+  // Fábrica estática: valida la coherencia básica del nacimiento de una factura
   public static create(
     id: string,
     folio: InvoiceFolio,
@@ -52,9 +68,8 @@ export class Invoice {
   }
 
   /**
-   * Reconstructs an Invoice from persisted data.
-   * Used exclusively by OperationMapper — bypasses construction guards
-   * that are guaranteed to hold for any record already written to the database.
+   * Reconstitución: restaura una factura desde la base de datos sin ejecutar validaciones de negocio.
+   * Utilizado únicamente por el Mapper de la Operación.
    */
   public static reconstitute(
     id: string,
@@ -68,6 +83,7 @@ export class Invoice {
     return new Invoice(id, folio, debtorTaxId, debtorName, amount, issueDate, dueDate);
   }
 
+  // Getters para exponer atributos de manera inmutable
   public get valueId(): string {
     return this.id;
   }
@@ -96,6 +112,7 @@ export class Invoice {
     return this.dueDate;
   }
 
+  // Calcula exactamente los días calendario restantes usando huso horario UTC neutral
   public getRemainingDays(referenceDate: Date): number {
     const refMidnight = Date.UTC(
       referenceDate.getUTCFullYear(),
@@ -109,9 +126,11 @@ export class Invoice {
     );
     
     const diffTime = dueMidnight - refMidnight;
+    // Convierte milisegundos a días calendario usando redondeo hacia arriba (Math.ceil)
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
+  // Comprueba la regla de negocio RD-INV-003 (plazo de vencimiento entre 15 y 120 días)
   public isEligibleForFinancing(requestDate: Date): boolean {
     const days = this.getRemainingDays(requestDate);
     return days >= 15 && days <= 120;
