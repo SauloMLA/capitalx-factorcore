@@ -5,22 +5,29 @@ import { ClientStatus } from '../../domain/enums/client-status.enum';
 import { DomainException } from '../../domain/common/exceptions/domain.exception';
 
 /**
- * Manual bi-directional mapper between the Prisma ClientRecord (persistence model)
- * and the Client domain aggregate.
- *
- * This is the ONLY file that knows about both layers simultaneously.
- * If the database schema changes, only this file needs to change.
+ * MAPPER DE CLIENTE (ClientMapper)
+ * Capa: Infraestructura (Infrastructure Layer)
+ * 
+ * ¿Qué responsabilidad tiene?
+ * Servir como traductor bidireccional entre el modelo de persistencia física de Prisma (`ClientRecord`)
+ * y la entidad rica de Dominio (`Client`).
+ * Es la única clase autorizada para conocer simultáneamente ambas representaciones del Cliente.
+ * 
+ * Defensa en entrevista:
+ * "El Mapper evita el acoplamiento de la base de datos con nuestro Dominio. 
+ * Si mañana cambia el nombre de la columna 'rfc' a 'registro_federal' en SQLite, solo cambiamos 
+ * este archivo. El dominio y los casos de uso siguen intactos porque ellos no tocan el modelo físico."
  */
 export class ClientMapper {
   /**
-   * Reconstructs a domain Client from a Prisma record.
-   * Uses Client.reconstitute to bypass PENDING-only creation rule
-   * and restore the persisted status faithfully.
+   * Traduce de persistencia a Dominio (Lectura).
+   * Usa `Client.reconstitute` para revivir la entidad con su estado histórico guardado (ej. APPROVED).
    */
   static toDomain(record: ClientRecord): Client {
     const taxId = TaxId.create(record.rfc);
     const status = record.status as ClientStatus;
 
+    // Validación defensiva por si la base de datos se corrompe externamente
     if (!Object.values(ClientStatus).includes(status)) {
       throw new DomainException(`Unknown client status from persistence: ${record.status}`);
     }
@@ -29,7 +36,9 @@ export class ClientMapper {
   }
 
   /**
-   * Converts a domain Client to a plain object ready for Prisma upsert.
+   * Traduce de Dominio a persistencia (Escritura).
+   * Convierte la entidad rica de Dominio en un objeto de datos plano (`Plain Object`)
+   * listo para ser guardado por Prisma.
    */
   static toPersistence(client: Client): {
     id: string;

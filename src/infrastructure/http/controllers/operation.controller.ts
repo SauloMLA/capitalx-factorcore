@@ -6,6 +6,14 @@ import { OperationResponseDto } from '../dtos/operation-response.dto';
 import { ClientSummaryResponseDto } from '../dtos/client-summary-response.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 
+/**
+ * CONTROLADOR DE OPERACIONES
+ * Capa: HTTP / Entrega (Delivery Layer)
+ * 
+ * ¿Qué responsabilidad tiene?
+ * Exponer los endpoints REST para originar operaciones de factoraje y obtener resúmenes de clientes.
+ * Mapea los DTOs de entrada y salida de red, y delega los flujos a la capa de Aplicación.
+ */
 @ApiTags('Operaciones')
 @Controller()
 export class OperationController {
@@ -14,6 +22,7 @@ export class OperationController {
     private readonly getClientSummaryUseCase: GetClientSummaryUseCase,
   ) {}
 
+  // POST /operaciones: Fondea y origina un lote de facturas
   @Post('operaciones')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Origina una nueva operación de factoraje. Valida todas las reglas de negocio (elegibilidad, folios duplicados, montos positivos, cliente aprobado).' })
@@ -37,6 +46,7 @@ export class OperationController {
     });
   }
 
+  // GET /clientes/:id/resumen: Resumen ejecutivo histórico del cliente
   @Get('clientes/:id/resumen')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Obtiene un resumen ejecutivo del cliente, incluyendo total de operaciones fondeadas, monto adelantado y la fecha del próximo vencimiento.' })

@@ -4,6 +4,20 @@ import { ApproveClientUseCase } from '../../../application/use-cases/approve-cli
 import { RegisterClientDto } from '../dtos/register-client.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 
+/**
+ * CONTROLADOR DE CLIENTES
+ * Capa: HTTP / Entrega (Delivery Layer)
+ * 
+ * ¿Qué responsabilidad tiene?
+ * Exponer los endpoints REST de red para la gestión de clientes (registro y aprobación).
+ * Recibe peticiones HTTP, extrae parámetros de ruta y payloads, e invoca los casos de uso.
+ * 
+ * Defensa en entrevista:
+ * "Este controlador delega toda la lógica de negocio a los Use Cases correspondientes.
+ * Su única tarea es de red: mapear peticiones y documentar la API usando Swagger. 
+ * Aplicamos validaciones sintácticas estrictas como ParseUUIDPipe para asegurar que el ID 
+ * en la ruta sea un UUID v4 válido antes de llamar al caso de uso."
+ */
 @ApiTags('Clientes')
 @Controller('clientes')
 export class ClientController {
@@ -12,6 +26,7 @@ export class ClientController {
     private readonly approveClientUseCase: ApproveClientUseCase,
   ) {}
 
+  // POST /clientes: Registro inicial del cliente
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Registra un nuevo cliente en estado PENDING. Los clientes deben ser aprobados antes de poder originar operaciones de factoraje.' })
@@ -34,6 +49,7 @@ export class ClientController {
     });
   }
 
+  // PATCH /clientes/:id/aprobar: Aprobación explícita del cliente
   @Patch(':id/aprobar')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Aprueba a un cliente pendiente. Este es un prerrequisito para que el cliente pueda originar operaciones de factoraje.' })

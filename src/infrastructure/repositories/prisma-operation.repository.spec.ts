@@ -54,7 +54,7 @@ function mockTx() {
 function mockPrisma(overrides: Record<string, unknown> = {}) {
   const tx = mockTx();
   return {
-    $transaction: jest.fn().mockImplementation((fn: (tx: typeof tx) => Promise<void>) => fn(tx)),
+    $transaction: jest.fn().mockImplementation((fn: (tx: any) => Promise<void>) => fn(tx)),
     operationRecord: {
       upsert: jest.fn().mockResolvedValue(undefined),
       findUnique: jest.fn().mockResolvedValue(null),
