@@ -1,19 +1,23 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { InfrastructureModule } from '../infrastructure.module';
 import { ClientController } from './controllers/client.controller';
 import { OperationController } from './controllers/operation.controller';
+import { AuthController } from './controllers/auth.controller';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 /**
  * MÓDULO HTTP
  * Capa: HTTP / Presentación (Http Layer)
- * 
- * ¿Qué responsabilidad tiene?
- * Agrupar y registrar todos los controladores web (Controllers) que exponen la API al mundo exterior.
- * Al importar `InfrastructureModule`, tiene acceso directo a los Casos de Uso del sistema para
- * poder inyectarlos en los constructores de sus controladores.
  */
 @Module({
-  imports: [InfrastructureModule], // Permite el acceso a los Use Cases de negocio
-  controllers: [ClientController, OperationController], // Registra las rutas de Clientes y Operaciones
+  imports: [InfrastructureModule],
+  controllers: [ClientController, OperationController, AuthController],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class HttpModule {}

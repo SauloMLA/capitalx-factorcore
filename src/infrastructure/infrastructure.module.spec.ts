@@ -6,6 +6,10 @@ import { ApproveClientUseCase } from '../application/use-cases/approve-client.us
 import { CreateOperationUseCase } from '../application/use-cases/create-operation.use-case';
 import { GetClientSummaryUseCase } from '../application/use-cases/get-client-summary.use-case';
 import { RegisterUserUseCase } from '../application/use-cases/register-user.use-case';
+import { LoginUserUseCase } from '../application/use-cases/auth/login-user.use-case';
+import { RefreshTokenUseCase } from '../application/use-cases/auth/refresh-token.use-case';
+import { LogoutUserUseCase } from '../application/use-cases/auth/logout-user.use-case';
+import { GetCurrentUserUseCase } from '../application/use-cases/auth/get-current-user.use-case';
 
 describe('InfrastructureModule Dependency Injection Wiring', () => {
   let moduleRef: TestingModule;
@@ -55,5 +59,25 @@ describe('InfrastructureModule Dependency Injection Wiring', () => {
   it('should resolve RegisterUserUseCase', () => {
     const useCase = moduleRef.get<RegisterUserUseCase>(RegisterUserUseCase);
     expect(useCase).toBeInstanceOf(RegisterUserUseCase);
+  });
+
+  it('should resolve LoginUserUseCase', () => {
+    const useCase = moduleRef.get<LoginUserUseCase>(LoginUserUseCase);
+    expect(useCase).toBeInstanceOf(LoginUserUseCase);
+  });
+
+  it('should resolve RefreshTokenUseCase', () => {
+    const useCase = moduleRef.get<RefreshTokenUseCase>(RefreshTokenUseCase);
+    expect(useCase).toBeInstanceOf(RefreshTokenUseCase);
+  });
+
+  it('should resolve LogoutUserUseCase', () => {
+    const useCase = moduleRef.get<LogoutUserUseCase>(LogoutUserUseCase);
+    expect(useCase).toBeInstanceOf(LogoutUserUseCase);
+  });
+
+  it('should resolve GetCurrentUserUseCase', () => {
+    const useCase = moduleRef.get<GetCurrentUserUseCase>(GetCurrentUserUseCase);
+    expect(useCase).toBeInstanceOf(GetCurrentUserUseCase);
   });
 });
