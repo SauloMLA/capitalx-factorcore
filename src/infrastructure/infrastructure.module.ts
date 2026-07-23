@@ -9,6 +9,8 @@ import { PrismaClientRepository } from './repositories/prisma-client.repository'
 import { PrismaOperationRepository } from './repositories/prisma-operation.repository';
 import { PrismaUserRepository } from './repositories/prisma-user.repository';
 import { PrismaRefreshTokenRepository } from './repositories/prisma-refresh-token.repository';
+import { PrismaDashboardQueryService } from './database/queries/prisma-dashboard-query.service';
+import { PrismaService } from './database/prisma.service';
 
 import { BcryptPasswordHasher } from './auth/bcrypt-password-hasher';
 import { JwtTokenService } from './auth/jwt-token-service';
@@ -32,7 +34,8 @@ import { LoginUserUseCase } from '../application/use-cases/auth/login-user.use-c
 import { RefreshTokenUseCase } from '../application/use-cases/auth/refresh-token.use-case';
 import { LogoutUserUseCase } from '../application/use-cases/auth/logout-user.use-case';
 import { GetCurrentUserUseCase } from '../application/use-cases/auth/get-current-user.use-case';
-
+import { GetUsersUseCase } from '../application/use-cases/get-users.use-case';
+import { GetDashboardMetricsUseCase } from '../application/use-cases/get-dashboard-metrics.use-case';
 /**
  * MÓDULO DE INFRAESTRUCTURA
  * Capa: Infraestructura (Infrastructure Layer)
@@ -60,6 +63,10 @@ import { GetCurrentUserUseCase } from '../application/use-cases/auth/get-current
     {
       provide: REPOSITORY_TOKENS.REFRESH_TOKEN,
       useClass: PrismaRefreshTokenRepository,
+    },
+    {
+      provide: 'DashboardQueryService',
+      useClass: PrismaDashboardQueryService,
     },
     {
       provide: REPOSITORY_TOKENS.PASSWORD_HASHER,
@@ -141,6 +148,16 @@ import { GetCurrentUserUseCase } from '../application/use-cases/auth/get-current
       useFactory: (userRepo: UserRepository) => new GetCurrentUserUseCase(userRepo),
       inject: [REPOSITORY_TOKENS.USER],
     },
+    {
+      provide: GetUsersUseCase,
+      useFactory: (userRepo: UserRepository) => new GetUsersUseCase(userRepo),
+      inject: [REPOSITORY_TOKENS.USER],
+    },
+    {
+      provide: GetDashboardMetricsUseCase,
+      useFactory: (dashboardQueryService: any) => new GetDashboardMetricsUseCase(dashboardQueryService),
+      inject: ['DashboardQueryService'],
+    },
   ],
   exports: [
     RegisterClientUseCase,
@@ -152,6 +169,8 @@ import { GetCurrentUserUseCase } from '../application/use-cases/auth/get-current
     RefreshTokenUseCase,
     LogoutUserUseCase,
     GetCurrentUserUseCase,
+    GetUsersUseCase,
+    GetDashboardMetricsUseCase,
     REPOSITORY_TOKENS.USER,
     REPOSITORY_TOKENS.REFRESH_TOKEN,
     REPOSITORY_TOKENS.PASSWORD_HASHER,
