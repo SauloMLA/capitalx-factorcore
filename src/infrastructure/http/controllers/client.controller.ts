@@ -18,6 +18,9 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
  * Aplicamos validaciones sintácticas estrictas como ParseUUIDPipe para asegurar que el ID 
  * en la ruta sea un UUID v4 válido antes de llamar al caso de uso."
  */
+import { Public } from '../../auth/decorators/public.decorator';
+
+@Public()
 @ApiTags('Clientes')
 @Controller('clientes')
 export class ClientController {

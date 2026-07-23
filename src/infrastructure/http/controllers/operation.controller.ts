@@ -14,6 +14,9 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
  * Exponer los endpoints REST para originar operaciones de factoraje y obtener resúmenes de clientes.
  * Mapea los DTOs de entrada y salida de red, y delega los flujos a la capa de Aplicación.
  */
+import { Public } from '../../auth/decorators/public.decorator';
+
+@Public()
 @ApiTags('Operaciones')
 @Controller()
 export class OperationController {

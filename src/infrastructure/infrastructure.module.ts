@@ -1,14 +1,25 @@
 import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+
 import { DatabaseModule } from './database/database.module';
 import { REPOSITORY_TOKENS } from './tokens/repository.tokens';
+
 import { PrismaClientRepository } from './repositories/prisma-client.repository';
 import { PrismaOperationRepository } from './repositories/prisma-operation.repository';
 import { PrismaUserRepository } from './repositories/prisma-user.repository';
+import { PrismaRefreshTokenRepository } from './repositories/prisma-refresh-token.repository';
+
 import { BcryptPasswordHasher } from './auth/bcrypt-password-hasher';
+import { JwtTokenService } from './auth/jwt-token-service';
+import { JwtStrategy } from './auth/strategies/jwt.strategy';
+
 import { ClientRepository } from '../domain/repositories/client.repository.interface';
 import { OperationRepository } from '../domain/repositories/operation.repository.interface';
 import { UserRepository } from '../domain/repositories/user.repository.interface';
+import { RefreshTokenRepository } from '../domain/repositories/refresh-token.repository.interface';
 import { PasswordHasher } from '../application/ports/password-hasher.interface';
+import { TokenService } from '../application/ports/token-service.interface';
 
 // Casos de Uso
 import { RegisterClientUseCase } from '../application/use-cases/register-client.use-case';
@@ -17,14 +28,23 @@ import { CreateOperationUseCase } from '../application/use-cases/create-operatio
 import { GetClientSummaryUseCase } from '../application/use-cases/get-client-summary.use-case';
 import { RegisterUserUseCase } from '../application/use-cases/register-user.use-case';
 
+import { LoginUserUseCase } from '../application/use-cases/auth/login-user.use-case';
+import { RefreshTokenUseCase } from '../application/use-cases/auth/refresh-token.use-case';
+import { LogoutUserUseCase } from '../application/use-cases/auth/logout-user.use-case';
+import { GetCurrentUserUseCase } from '../application/use-cases/auth/get-current-user.use-case';
+
 /**
  * MÓDULO DE INFRAESTRUCTURA
  * Capa: Infraestructura (Infrastructure Layer)
  */
 @Module({
-  imports: [DatabaseModule],
+  imports: [
+    DatabaseModule,
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    JwtModule.register({}),
+  ],
   providers: [
-    // 1. Vinculación de Repositorios y Servicios de Infraestructura:
+    // Repositorios y adaptadores
     {
       provide: REPOSITORY_TOKENS.CLIENT,
       useClass: PrismaClientRepository,
@@ -38,11 +58,20 @@ import { RegisterUserUseCase } from '../application/use-cases/register-user.use-
       useClass: PrismaUserRepository,
     },
     {
+      provide: REPOSITORY_TOKENS.REFRESH_TOKEN,
+      useClass: PrismaRefreshTokenRepository,
+    },
+    {
       provide: REPOSITORY_TOKENS.PASSWORD_HASHER,
       useClass: BcryptPasswordHasher,
     },
+    {
+      provide: REPOSITORY_TOKENS.TOKEN_SERVICE,
+      useClass: JwtTokenService,
+    },
+    JwtStrategy,
 
-    // 2. Factory Providers para los Casos de Uso:
+    // Casos de uso
     {
       provide: RegisterClientUseCase,
       useFactory: (clientRepo: ClientRepository) => new RegisterClientUseCase(clientRepo),
@@ -71,6 +100,47 @@ import { RegisterUserUseCase } from '../application/use-cases/register-user.use-
         new RegisterUserUseCase(userRepo, passwordHasher),
       inject: [REPOSITORY_TOKENS.USER, REPOSITORY_TOKENS.PASSWORD_HASHER],
     },
+    {
+      provide: LoginUserUseCase,
+      useFactory: (
+        userRepo: UserRepository,
+        tokenRepo: RefreshTokenRepository,
+        passwordHasher: PasswordHasher,
+        tokenService: TokenService,
+      ) => new LoginUserUseCase(userRepo, tokenRepo, passwordHasher, tokenService),
+      inject: [
+        REPOSITORY_TOKENS.USER,
+        REPOSITORY_TOKENS.REFRESH_TOKEN,
+        REPOSITORY_TOKENS.PASSWORD_HASHER,
+        REPOSITORY_TOKENS.TOKEN_SERVICE,
+      ],
+    },
+    {
+      provide: RefreshTokenUseCase,
+      useFactory: (
+        userRepo: UserRepository,
+        tokenRepo: RefreshTokenRepository,
+        tokenService: TokenService,
+      ) => new RefreshTokenUseCase(userRepo, tokenRepo, tokenService),
+      inject: [
+        REPOSITORY_TOKENS.USER,
+        REPOSITORY_TOKENS.REFRESH_TOKEN,
+        REPOSITORY_TOKENS.TOKEN_SERVICE,
+      ],
+    },
+    {
+      provide: LogoutUserUseCase,
+      useFactory: (
+        tokenRepo: RefreshTokenRepository,
+        tokenService: TokenService,
+      ) => new LogoutUserUseCase(tokenRepo, tokenService),
+      inject: [REPOSITORY_TOKENS.REFRESH_TOKEN, REPOSITORY_TOKENS.TOKEN_SERVICE],
+    },
+    {
+      provide: GetCurrentUserUseCase,
+      useFactory: (userRepo: UserRepository) => new GetCurrentUserUseCase(userRepo),
+      inject: [REPOSITORY_TOKENS.USER],
+    },
   ],
   exports: [
     RegisterClientUseCase,
@@ -78,8 +148,14 @@ import { RegisterUserUseCase } from '../application/use-cases/register-user.use-
     CreateOperationUseCase,
     GetClientSummaryUseCase,
     RegisterUserUseCase,
+    LoginUserUseCase,
+    RefreshTokenUseCase,
+    LogoutUserUseCase,
+    GetCurrentUserUseCase,
     REPOSITORY_TOKENS.USER,
+    REPOSITORY_TOKENS.REFRESH_TOKEN,
     REPOSITORY_TOKENS.PASSWORD_HASHER,
+    REPOSITORY_TOKENS.TOKEN_SERVICE,
   ],
 })
 export class InfrastructureModule {}
