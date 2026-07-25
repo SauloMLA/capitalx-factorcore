@@ -41,3 +41,15 @@ El factoraje financiero en **FactorCore** se modela exactamente mediante dos flu
     *   `Comisión` = `Monto Total * 0.015` (Comisión fija del 1.5%).
     *   `Monto a Depositar` = `Monto Adelantado - Comisión`.
     *   *Todos los montos monetarios se redondean exactamente a 2 decimales.*
+
+### Módulo de Usuarios & Autenticación (Users & Auth)
+*   **RD-USR-001 (Roles):** Existen dos roles: `ADMINISTRATOR` (acceso total a usuarios, auditoría y aprobación) y `OPERATOR` (originación y consulta).
+*   **RD-USR-002 (Credenciales Seguras):** Las contraseñas se almacenan con hash Bcrypt (factor de costo 10).
+*   **RD-USR-003 (Manejo de Sesión):** Se emite un JWT Access Token (duración 15 min) y un Refresh Token de 7 días almacenado en cookie HttpOnly.
+
+### Módulo de Auditoría (Audit Logs)
+*   **RD-AUD-001 (Inmutabilidad):** Todo evento mutativo (`CREATE`, `APPROVE`, etc.) registra un evento inalterable guardando `performedBy`, `entity`, `entityId`, `oldValue`, `newValue`, `ip` y `userAgent`.
+*   **RD-AUD-002 (Acceso Restringido):** La bitácora de auditoría es accesible exclusivamente por usuarios con rol `ADMINISTRATOR`.
+
+### Módulo de Notificaciones (Notifications)
+*   **RD-NOT-001 (Visibilidad & Estado):** Las notificaciones pueden ser globales para la mesa de control o dirigidas a un usuario específico, con estado de lectura (`isRead`).
