@@ -26,4 +26,4 @@ COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 3005 3000 8080
 
-CMD ["sh", "-c", "npx prisma generate && node dist/src/main.js"]
+CMD ["node", "dist/main.js"]
