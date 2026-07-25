@@ -11,12 +11,17 @@ import { PrismaClient } from '@prisma/client';
  */
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
-  // Conecta físicamente a la base de datos SQLite al arrancar la aplicación
+  // Conecta a la base de datos al arrancar la aplicación
   async onModuleInit(): Promise<void> {
-    await this.$connect();
+    try {
+      await this.$connect();
+      console.log('✅ Prisma conectado exitosamente a la base de datos.');
+    } catch (error) {
+      console.error('❌ Error al conectar Prisma a la base de datos:', error);
+    }
   }
 
-  // Libera la conexión con la base de datos al apagarse el servidor para evitar fugas de memoria
+  // Libera la conexión al apagarse el servidor
   async onModuleDestroy(): Promise<void> {
     await this.$disconnect();
   }
