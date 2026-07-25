@@ -1,69 +1,69 @@
-# FactorCore 2.0
+# FactorCore 2.0 (Backend Engine)
 
-> **FactorCore 2.0** es un motor de originación financiera corporativo construido con **Clean Architecture** y **Domain-Driven Design (DDD)** para la plataforma de factoraje de **Capital X**.
-
----
-
-## 🧠 Visión del Sistema
-
-**FactorCore** gestiona el ciclo de vida completo del factoraje financiero (factoring) corporativo:
-1. **Gestión y Aprobación de Clientes**: Registro estricto con validaciones RFC de Persona Moral y mesa de control para aprobación explícita.
-2. **Originación de Operaciones**: Cesión de facturas en lote con cálculo de aforo fijo (85%), comisión (1.5%) y prevención transaccional de doble financiamiento.
-3. **Autenticación & RBAC**: Autenticación segura con JWT, Refresh Tokens en cookies `HttpOnly` y control de acceso basado en roles (`ADMINISTRATOR` y `OPERATOR`).
-4. **Dashboard & Métricas Ejecutivo**: Métricas en tiempo real, KPIs consolidados y análisis mensual de volumen y comisiones.
-5. **Bitácora de Auditoría Inmutable**: Registro de todas las acciones del sistema (`CREATE`, `APPROVE`, etc.) capturando el usuario, IP, User Agent y deltas de cambios (`oldValue` / `newValue`).
-6. **Centro de Notificaciones**: Emisión y consulta de alertas del sistema para la mesa de control y usuarios.
+> **FactorCore** es una plataforma de originación de factoraje financiero corporativo desarrollada para demostrar la construcción de un sistema empresarial resiliente utilizando **Clean Architecture**, **Domain-Driven Design (DDD)** y principios **SOLID**.
 
 ---
 
-## 🏗 Decisiones Arquitectónicas (Clean Architecture)
+## 🧠 El Problema del Negocio
 
-- **Domain-Driven Design (DDD)**: El núcleo de negocio (`src/domain/`) se mantiene 100% puro en TypeScript, libre de dependencias de frameworks o bases de datos.
-- **Clean Architecture**: Flujo unidireccional `HTTP Controller → Use Case → Domain Aggregate → Repository Interface → Prisma Adapter`.
-- **PostgreSQL & Prisma ORM**: Persistencia relacional atómica con soporte para migraciones automáticas.
-- **NestJS**: Framework modular con inyección de dependencias por interfaces/tokens (`REPOSITORY_TOKENS`).
+Las empresas proveedoras en América Latina enfrentan brechas críticas de flujo de caja al vender a grandes corporativos bajo términos de crédito comercial de **30 a 120 días**. Durante este plazo, su capital de trabajo permanece paralizado.
+
+**FactorCore** resuelve esta fricción permitiendo a empresas aprobadas ceder sus derechos de cobro comerciales para obtener liquidez inmediata, mientras automatiza las validaciones fiscales, previene el doble financiamiento y mantiene trazabilidad total mediante auditoría inmutable.
+
+---
+
+## 🔄 Flujo Operativo y de Casos de Uso
+
+$$\text{Registrar Cliente} \longrightarrow \text{Aprobar Cliente} \longrightarrow \text{Registrar Operación} \longrightarrow \text{Calcular Comisión} \longrightarrow \text{Generar Auditoría} \longrightarrow \text{Notificar}$$
+
+1. **Registrar Cliente**: Validación sintáctica del RFC de Persona Moral (12 caracteres). Estado inicial `PENDING`.
+2. **Aprobar Cliente**: Activación del cliente por un analista de Mesa de Control (`ADMINISTRATOR`).
+3. **Registrar Operación**: Originación en lote validando elegibilidad de facturas (15-120 días).
+4. **Calcular Comisión**: Aforo atómico del 85% y comisión del 1.5%.
+5. **Generar Auditoría**: Registro inalterable en `audit_logs` con deltas `oldValue`/`newValue`, IP y UserAgent.
+6. **Notificar**: Despacho de alerta en tiempo real a la Mesa de Control.
+
+---
+
+## 🎯 Bounded Contexts (Arquitectura DDD)
+
+El sistema está formalmente desacoplado en dominios delimitados:
+- **Auth Context**: Credenciales, Bcrypt (cost 10), JWT Access Tokens (15 min) y Refresh Tokens en cookies `HttpOnly`.
+- **Client Context**: Identidad fiscal, invariantes de aprobación y RFC Persona Moral.
+- **Operation Context**: Agregado `Operation`, entidad `Invoice`, cálculos de aforo y prevención de doble financiamiento.
+- **Audit & Notification Context**: Trazabilidad e historial de eventos inalterables.
+
+---
+
+## 🔒 Cadena de Seguridad (Defense in Depth)
+
+$$\text{JWT} \longrightarrow \text{Refresh Token (HttpOnly)} \longrightarrow \text{RBAC} \longrightarrow \text{Bcrypt} \longrightarrow \text{DTO Validation} \longrightarrow \text{Rate Limit} \longrightarrow \text{Helmet} \longrightarrow \text{CORS}$$
 
 ---
 
 ## 🚀 Inicio Rápido
 
-### 1. Requisitos Previos
-- Node.js v20+
-- PostgreSQL activo en `localhost:5432` (o vía Docker Desktop / Docker Compose)
-
-### 2. Instalación y Configuración
-
 ```bash
 cd financial-api
 cp .env.example .env
 npm install
-
-# Aplicar migraciones e inicializar cliente Prisma
 npm run db:setup
-
-# Sembrar usuarios por defecto (Admin: admin@factorcore.com)
 npm run db:seed
-
-# Iniciar backend en desarrollo (NestJS en http://localhost:3005)
 npm run start:dev
 ```
 
-### 3. Swagger & Documentación Interactiva
-Abre **[http://localhost:3005/api](http://localhost:3005/api)** para consultar y probar todos los endpoints REST interactivos.
+Documentación interactiva Swagger: **[http://localhost:3005/api](http://localhost:3005/api)**
 
----
-
-## 🧪 Pruebas Unitarias
-El proyecto cuenta con 100% de cobertura en casos de uso y entidades de dominio:
-
+### Pruebas Unitarias
 ```bash
-# Ejecutar todas las suites de prueba (39 suites / 143 tests)
+# 39 Test Suites / 143 Tests pasados al 100%
 npm test
 ```
 
 ---
 
-## 📚 Documentación Adicional
+## 📚 Documentación Maestra de Diseño de Sistema
 
-* **[ARCHITECTURE.md](ARCHITECTURE.md)**: Diagramas de Agregados, flujo de datos y decisiones de diseño.
-* **[PROJECT_GUIDE.md](PROJECT_GUIDE.md)**: Invariantes y reglas de negocio del sistema.
+Para consultar las **Decisiones Arquitectónicas (ADRs)**, estrategias de **Performance & Indexación en PostgreSQL**, **Observabilidad (`/health`)** y el **Roadmap Evolutivo (V1 a V5)**, revisa el documento principal:
+
+👉 **[TECHNICAL_DESIGN_DOCUMENT.md](TECHNICAL_DESIGN_DOCUMENT.md)**
