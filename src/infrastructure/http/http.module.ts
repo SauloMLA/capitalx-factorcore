@@ -7,6 +7,7 @@ import { AuthController } from './controllers/auth.controller';
 import { UserController } from './controllers/user.controller';
 import { DashboardController } from './controllers/dashboard.controller';
 import { AuditController } from './controllers/audit.controller';
+import { NotificationController } from './controllers/notification.controller';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 
@@ -16,7 +17,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
  */
 @Module({
   imports: [InfrastructureModule],
-  controllers: [ClientController, OperationController, AuthController, UserController, DashboardController, AuditController],
+  controllers: [ClientController, OperationController, AuthController, UserController, DashboardController, AuditController, NotificationController],
   providers: [
     {
       provide: APP_GUARD,

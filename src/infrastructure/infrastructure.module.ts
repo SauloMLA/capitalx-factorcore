@@ -39,6 +39,11 @@ import { GetCurrentUserUseCase } from '../application/use-cases/auth/get-current
 import { GetUsersUseCase } from '../application/use-cases/get-users.use-case';
 import { GetDashboardMetricsUseCase } from '../application/use-cases/get-dashboard-metrics.use-case';
 import { GetAuditLogsUseCase } from '../application/use-cases/get-audit-logs.use-case';
+import { PrismaNotificationRepository } from './repositories/prisma-notification.repository';
+import { NotificationRepository } from '../domain/repositories/notification.repository.interface';
+import { GetNotificationsUseCase } from '../application/use-cases/get-notifications.use-case';
+import { MarkNotificationReadUseCase } from '../application/use-cases/mark-notification-read.use-case';
+
 /**
  * MÓDULO DE INFRAESTRUCTURA
  * Capa: Infraestructura (Infrastructure Layer)
@@ -70,6 +75,10 @@ import { GetAuditLogsUseCase } from '../application/use-cases/get-audit-logs.use
     {
       provide: REPOSITORY_TOKENS.AUDIT_LOG,
       useClass: PrismaAuditLogRepository,
+    },
+    {
+      provide: REPOSITORY_TOKENS.NOTIFICATION,
+      useClass: PrismaNotificationRepository,
     },
     {
       provide: 'DashboardQueryService',
@@ -170,6 +179,16 @@ import { GetAuditLogsUseCase } from '../application/use-cases/get-audit-logs.use
       useFactory: (auditRepo: AuditLogRepository) => new GetAuditLogsUseCase(auditRepo),
       inject: [REPOSITORY_TOKENS.AUDIT_LOG],
     },
+    {
+      provide: GetNotificationsUseCase,
+      useFactory: (notifRepo: NotificationRepository) => new GetNotificationsUseCase(notifRepo),
+      inject: [REPOSITORY_TOKENS.NOTIFICATION],
+    },
+    {
+      provide: MarkNotificationReadUseCase,
+      useFactory: (notifRepo: NotificationRepository) => new MarkNotificationReadUseCase(notifRepo),
+      inject: [REPOSITORY_TOKENS.NOTIFICATION],
+    },
   ],
   exports: [
     RegisterClientUseCase,
@@ -184,11 +203,14 @@ import { GetAuditLogsUseCase } from '../application/use-cases/get-audit-logs.use
     GetUsersUseCase,
     GetDashboardMetricsUseCase,
     GetAuditLogsUseCase,
+    GetNotificationsUseCase,
+    MarkNotificationReadUseCase,
     REPOSITORY_TOKENS.USER,
     REPOSITORY_TOKENS.REFRESH_TOKEN,
     REPOSITORY_TOKENS.PASSWORD_HASHER,
     REPOSITORY_TOKENS.TOKEN_SERVICE,
     REPOSITORY_TOKENS.AUDIT_LOG,
+    REPOSITORY_TOKENS.NOTIFICATION,
   ],
 })
 export class InfrastructureModule {}
