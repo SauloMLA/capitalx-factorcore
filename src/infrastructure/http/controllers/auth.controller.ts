@@ -47,10 +47,11 @@ export class AuthController {
   ) {
     const result = await this.loginUserUseCase.execute(dto);
 
+    const isProd = process.env.NODE_ENV === 'production';
     response.cookie('refresh_token', result.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
       path: '/auth',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
@@ -72,10 +73,11 @@ export class AuthController {
     const token = request.cookies?.refresh_token || dto.refreshToken;
     const result = await this.refreshTokenUseCase.execute({ refreshToken: token });
 
+    const isProd = process.env.NODE_ENV === 'production';
     response.cookie('refresh_token', result.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
       path: '/auth',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
