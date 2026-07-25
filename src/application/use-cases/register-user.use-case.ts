@@ -14,6 +14,9 @@ export interface RegisterUserCommand {
   name: string;
   role: UserRole;
   clientId?: string | null;
+  performedBy: string;
+  ip?: string;
+  userAgent?: string;
 }
 
 /**
@@ -24,10 +27,14 @@ export interface RegisterUserCommand {
  * Valida la unicidad del email, encripta la contraseña usando el puerto PasswordHasher,
  * construye la entidad User y la persiste.
  */
+import { AuditLogRepository } from '../../domain/repositories/audit-log.repository.interface';
+import { AuditLog } from '../../domain/entities/audit-log.entity';
+
 export class RegisterUserUseCase {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly passwordHasher: PasswordHasher,
+    private readonly auditLogRepository: AuditLogRepository,
   ) {}
 
   async execute(command: RegisterUserCommand): Promise<{ id: string }> {
@@ -61,6 +68,19 @@ export class RegisterUserUseCase {
     );
 
     await this.userRepository.save(user);
+
+    // 6. Registrar auditoría
+    const auditLog = new AuditLog({
+      id: randomUUID(),
+      entity: 'User',
+      entityId: userId,
+      action: 'CREATE',
+      performedBy: command.performedBy,
+      newValue: JSON.stringify({ email: command.email, role: command.role }),
+      ip: command.ip,
+      userAgent: command.userAgent,
+    });
+    await this.auditLogRepository.save(auditLog);
 
     return { id: userId };
   }

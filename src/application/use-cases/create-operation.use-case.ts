@@ -23,6 +23,9 @@ export interface CreateOperationCommand {
   clientId: string;
   requestDate: Date;
   invoices: InvoiceInput[];
+  performedBy: string;
+  ip?: string;
+  userAgent?: string;
 }
 
 // Estructura del resultado devuelto por el caso de uso
@@ -47,10 +50,14 @@ export interface OperationResult {
  * 4. Delegar la validación financiera y el cálculo del aforo/comisión al agregado Operation.
  * 5. Guardar la operación en la base de datos de manera atómica si las validaciones de negocio pasaron.
  */
+import { AuditLogRepository } from '../../domain/repositories/audit-log.repository.interface';
+import { AuditLog } from '../../domain/entities/audit-log.entity';
+
 export class CreateOperationUseCase {
   constructor(
     private readonly clientRepository: ClientRepository,
     private readonly operationRepository: OperationRepository,
+    private readonly auditLogRepository: AuditLogRepository,
   ) {}
 
   async execute(command: CreateOperationCommand): Promise<OperationResult> {
@@ -87,6 +94,22 @@ export class CreateOperationUseCase {
 
     // 5. Persistir la operación y facturas en la base de datos
     await this.operationRepository.save(operation);
+
+    // 6. Registrar auditoría
+    const auditLog = new AuditLog({
+      id: randomUUID(),
+      entity: 'Operation',
+      entityId: operation.valueId,
+      action: 'CREATE',
+      performedBy: command.performedBy,
+      newValue: JSON.stringify({ 
+        totalAmount: operation.valueTotalAmount.value, 
+        invoices: invoices.length 
+      }),
+      ip: command.ip,
+      userAgent: command.userAgent,
+    });
+    await this.auditLogRepository.save(auditLog);
 
     return {
       operationId: operation.valueId,

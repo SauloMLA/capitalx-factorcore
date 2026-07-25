@@ -1,26 +1,15 @@
-import { Body, Controller, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Req } from '@nestjs/common';
+import { Request } from 'express';
 import { RegisterClientUseCase } from '../../../application/use-cases/register-client.use-case';
 import { ApproveClientUseCase } from '../../../application/use-cases/approve-client.use-case';
 import { RegisterClientDto } from '../dtos/register-client.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { Public } from '../../auth/decorators/public.decorator';
 
 /**
  * CONTROLADOR DE CLIENTES
  * Capa: HTTP / Entrega (Delivery Layer)
- * 
- * ¿Qué responsabilidad tiene?
- * Exponer los endpoints REST de red para la gestión de clientes (registro y aprobación).
- * Recibe peticiones HTTP, extrae parámetros de ruta y payloads, e invoca los casos de uso.
- * 
- * Defensa en entrevista:
- * "Este controlador delega toda la lógica de negocio a los Use Cases correspondientes.
- * Su única tarea es de red: mapear peticiones y documentar la API usando Swagger. 
- * Aplicamos validaciones sintácticas estrictas como ParseUUIDPipe para asegurar que el ID 
- * en la ruta sea un UUID v4 válido antes de llamar al caso de uso."
  */
-import { Public } from '../../auth/decorators/public.decorator';
-
-@Public()
 @ApiTags('Clientes')
 @Controller('clientes')
 export class ClientController {
@@ -30,6 +19,7 @@ export class ClientController {
   ) {}
 
   // POST /clientes: Registro inicial del cliente
+  @Public()
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Registra un nuevo cliente en estado PENDING. Los clientes deben ser aprobados antes de poder originar operaciones de factoraje.' })
@@ -44,11 +34,14 @@ export class ClientController {
     description: 'Conflict: Ya existe un cliente registrado con el RFC proporcionado.',
     schema: { example: { message: 'Client with TaxId CAP220101XYZ already exists', error: 'Conflict', statusCode: 409 } }
   })
-  async register(@Body() dto: RegisterClientDto): Promise<{ id: string }> {
+  async register(@Body() dto: RegisterClientDto, @Req() req: any): Promise<{ id: string }> {
     return await this.registerClientUseCase.execute({
       rfc: dto.rfc,
       name: dto.name,
       email: dto.email,
+      performedBy: req.user?.id || 'system',
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
     });
   }
 
@@ -64,7 +57,12 @@ export class ClientController {
     description: 'Unprocessable Entity: El cliente ya se encuentra aprobado y no requiere otra aprobación.',
     schema: { example: { message: 'Client is already approved', error: 'Unprocessable Entity', statusCode: 422 } }
   })
-  async approve(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string): Promise<void> {
-    await this.approveClientUseCase.execute({ clientId: id });
+  async approve(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string, @Req() req: any): Promise<void> {
+    await this.approveClientUseCase.execute({ 
+      clientId: id, 
+      performedBy: req.user?.id || 'system',
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
   }
 }

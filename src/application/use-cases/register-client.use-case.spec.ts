@@ -4,6 +4,7 @@ import { Client } from '../../domain/entities/client.entity';
 import { TaxId } from '../../domain/common/value-objects/tax-id.value-object';
 import { ClientAlreadyExistsException } from '../exceptions/client.exceptions';
 import { DomainException } from '../../domain/common/exceptions/domain.exception';
+import { AuditLogRepository } from '../../domain/repositories/audit-log.repository.interface';
 
 // ─── In-memory fake ───────────────────────────────────────────────────────────
 
@@ -22,17 +23,25 @@ class FakeClientRepository implements ClientRepository {
     }
     return null;
   }
+  async findAll(): Promise<Client[]> {
+    return Array.from(this.store.values());
+  }
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('RegisterClientUseCase', () => {
   let repo: FakeClientRepository;
+  let auditRepo: jest.Mocked<AuditLogRepository>;
   let useCase: RegisterClientUseCase;
 
   beforeEach(() => {
     repo = new FakeClientRepository();
-    useCase = new RegisterClientUseCase(repo);
+    auditRepo = {
+      save: jest.fn(),
+      findAll: jest.fn(),
+    };
+    useCase = new RegisterClientUseCase(repo, auditRepo);
   });
 
   it('should register a new client successfully', async () => {
@@ -40,24 +49,26 @@ describe('RegisterClientUseCase', () => {
       rfc: 'XYZ850101XXX',
       name: 'Empresa ABC S.A.',
       email: 'abc@empresa.mx',
+      performedBy: 'user-1',
     });
 
     const saved = await repo.findById(id);
     expect(saved).not.toBeNull();
     expect(saved?.valueTaxId.value).toBe('XYZ850101XXX');
     expect(saved?.isApproved()).toBe(false);
+    expect(auditRepo.save).toHaveBeenCalled();
   });
 
   it('should throw ClientAlreadyExistsException when RFC is duplicated', async () => {
-    await useCase.execute({ rfc: 'XYZ850101XXX', name: 'First', email: 'a@a.mx' });
+    await useCase.execute({ rfc: 'XYZ850101XXX', name: 'First', email: 'a@a.mx', performedBy: 'user-1' });
     await expect(
-      useCase.execute({ rfc: 'XYZ850101XXX', name: 'Second', email: 'b@b.mx' }),
+      useCase.execute({ rfc: 'XYZ850101XXX', name: 'Second', email: 'b@b.mx', performedBy: 'user-1' }),
     ).rejects.toBeInstanceOf(ClientAlreadyExistsException);
   });
 
   it('should throw DomainException for an invalid RFC format', async () => {
     await expect(
-      useCase.execute({ rfc: 'INVALID', name: 'Bad RFC', email: 'c@c.mx' }),
+      useCase.execute({ rfc: 'INVALID', name: 'Bad RFC', email: 'c@c.mx', performedBy: 'user-1' }),
     ).rejects.toBeInstanceOf(DomainException);
   });
 });
