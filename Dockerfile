@@ -18,4 +18,4 @@ ENV NODE_ENV=production
 
 EXPOSE 3005 3000 8080
 
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]
