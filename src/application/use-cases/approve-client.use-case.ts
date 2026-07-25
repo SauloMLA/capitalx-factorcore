@@ -6,6 +6,9 @@ import { ClientNotFoundException } from '../exceptions/client.exceptions';
  */
 export interface ApproveClientCommand {
   clientId: string;
+  performedBy: string;
+  ip?: string;
+  userAgent?: string;
 }
 
 /**
@@ -21,8 +24,14 @@ export interface ApproveClientCommand {
  * Es la propia entidad Client la que protege su estado para no ser aprobada dos veces (regla de negocio).
  * Luego de la aprobación, guardamos los cambios a través del repositorio."
  */
+import { AuditLogRepository } from '../../domain/repositories/audit-log.repository.interface';
+import { AuditLog } from '../../domain/entities/audit-log.entity';
+
 export class ApproveClientUseCase {
-  constructor(private readonly clientRepository: ClientRepository) {}
+  constructor(
+    private readonly clientRepository: ClientRepository,
+    private readonly auditLogRepository: AuditLogRepository,
+  ) {}
 
   async execute(command: ApproveClientCommand): Promise<void> {
     // 1. Obtener al cliente desde el repositorio
@@ -32,7 +41,22 @@ export class ApproveClientUseCase {
     }
 
     // 2. Ejecutar la acción en la entidad de Dominio y guardar
+    const oldStatus = client.valueStatus;
     client.approve();
     await this.clientRepository.save(client);
+
+    // 3. Registrar auditoría
+    const auditLog = new AuditLog({
+      id: crypto.randomUUID(),
+      entity: 'Client',
+      entityId: client.valueId,
+      action: 'APPROVE',
+      performedBy: command.performedBy,
+      oldValue: JSON.stringify({ status: oldStatus }),
+      newValue: JSON.stringify({ status: client.valueStatus }),
+      ip: command.ip,
+      userAgent: command.userAgent,
+    });
+    await this.auditLogRepository.save(auditLog);
   }
 }

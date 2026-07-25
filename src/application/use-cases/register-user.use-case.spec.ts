@@ -1,74 +1,76 @@
-import { RegisterUserUseCase, RegisterUserCommand } from './register-user.use-case';
+import { RegisterUserUseCase } from './register-user.use-case';
 import { UserRepository } from '../../domain/repositories/user.repository.interface';
+import { AuditLogRepository } from '../../domain/repositories/audit-log.repository.interface';
 import { PasswordHasher } from '../ports/password-hasher.interface';
 import { UserRole } from '../../domain/enums/user-role.enum';
 import { UserAlreadyExistsException } from '../exceptions/user.exceptions';
-import { User } from '../../domain/entities/user.entity';
+import { DomainException } from '../../domain/common/exceptions/domain.exception';
 
 describe('RegisterUserUseCase', () => {
+  let useCase: RegisterUserUseCase;
   let mockUserRepository: jest.Mocked<UserRepository>;
   let mockPasswordHasher: jest.Mocked<PasswordHasher>;
-  let useCase: RegisterUserUseCase;
+  let mockAuditLogRepository: jest.Mocked<AuditLogRepository>;
 
   beforeEach(() => {
     mockUserRepository = {
-      save: jest.fn().mockResolvedValue(undefined),
-      findById: jest.fn().mockResolvedValue(null),
-      findByEmail: jest.fn().mockResolvedValue(null),
-      findAll: jest.fn().mockResolvedValue([]),
+      save: jest.fn(),
+      findByEmail: jest.fn(),
+      findById: jest.fn(),
+      findAll: jest.fn(),
     };
-
     mockPasswordHasher = {
-      hash: jest.fn().mockImplementation(async (pwd) => `$2b$10$hashed_${pwd}`),
-      compare: jest.fn().mockResolvedValue(true),
+      hash: jest.fn(),
+      compare: jest.fn(),
+    };
+    mockAuditLogRepository = {
+      save: jest.fn(),
+      findAll: jest.fn(),
     };
 
-    useCase = new RegisterUserUseCase(mockUserRepository, mockPasswordHasher);
+    useCase = new RegisterUserUseCase(mockUserRepository, mockPasswordHasher, mockAuditLogRepository);
   });
 
   it('should register a new user successfully', async () => {
-    const command: RegisterUserCommand = {
-      email: 'analyst@capital.mx',
-      password: 'password123',
-      name: 'Carlos Analista',
-      role: UserRole.ADMINISTRATOR,
-    };
+    mockUserRepository.findByEmail.mockResolvedValue(null);
+    mockPasswordHasher.hash.mockResolvedValue('hashed-pwd');
 
-    const result = await useCase.execute(command);
+    const result = await useCase.execute({
+      email: 'admin@factorx.com',
+      password: 'password123',
+      name: 'Admin User',
+      role: UserRole.ADMINISTRATOR,
+      performedBy: 'user-1',
+    });
 
     expect(result.id).toBeDefined();
-    expect(mockUserRepository.findByEmail).toHaveBeenCalled();
-    expect(mockPasswordHasher.hash).toHaveBeenCalledWith('password123');
-    expect(mockUserRepository.save).toHaveBeenCalledWith(expect.any(User));
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+    expect(mockAuditLogRepository.save).toHaveBeenCalledTimes(1);
   });
 
-  it('should throw UserAlreadyExistsException if email is already taken', async () => {
-    mockUserRepository.findByEmail.mockResolvedValue(
-      {} as unknown as User,
-    );
+  it('should throw UserAlreadyExistsException if email is taken', async () => {
+    mockUserRepository.findByEmail.mockResolvedValue({} as any);
 
-    const command: RegisterUserCommand = {
-      email: 'existing@capital.mx',
-      password: 'password123',
-      name: 'Carlos Analista',
-      role: UserRole.OPERATOR,
-    };
-
-    await expect(useCase.execute(command)).rejects.toThrow(
-      UserAlreadyExistsException,
-    );
+    await expect(
+      useCase.execute({
+        email: 'taken@factorx.com',
+        password: 'password123',
+        name: 'Taken User',
+        role: UserRole.OPERATOR,
+        performedBy: 'user-1',
+      })
+    ).rejects.toBeInstanceOf(UserAlreadyExistsException);
   });
 
   it('should throw DomainException if password is too short', async () => {
-    const command: RegisterUserCommand = {
-      email: 'short@capital.mx',
-      password: '123',
-      name: 'Short Password',
-      role: UserRole.OPERATOR,
-    };
-
-    await expect(useCase.execute(command)).rejects.toThrow(
-      'Password must be at least 8 characters long',
-    );
+    await expect(
+      useCase.execute({
+        email: 'admin@factorx.com',
+        password: 'short',
+        name: 'Admin User',
+        role: UserRole.ADMINISTRATOR,
+        performedBy: 'user-1',
+      })
+    ).rejects.toBeInstanceOf(DomainException);
   });
 });

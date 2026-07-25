@@ -110,7 +110,12 @@ export class AuthController {
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Registrar un nuevo usuario (Inicial / Mesa de Control)' })
-  async register(@Body() dto: RegisterUserDto) {
-    return this.registerUserUseCase.execute(dto);
+  async register(@Body() dto: RegisterUserDto, @Req() req: any) {
+    return this.registerUserUseCase.execute({
+      ...dto,
+      performedBy: req.user?.id || 'system',
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
   }
 }

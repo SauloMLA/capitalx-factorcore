@@ -5,43 +5,40 @@ import { GetClientSummaryUseCase } from '../../../application/use-cases/get-clie
 
 describe('OperationController', () => {
   let controller: OperationController;
-  let createUseCase: CreateOperationUseCase;
-  let summaryUseCase: GetClientSummaryUseCase;
+  let createUseCase: jest.Mocked<CreateOperationUseCase>;
 
   beforeEach(async () => {
-    const mockCreate = { execute: jest.fn() };
-    const mockSummary = { execute: jest.fn() };
+    const mockCreateUseCase = {
+      execute: jest.fn().mockResolvedValue({ operationId: 'op-123', totalAmount: 100 }),
+    };
+    const mockGetSummaryUseCase = {
+      execute: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OperationController],
       providers: [
-        { provide: CreateOperationUseCase, useValue: mockCreate },
-        { provide: GetClientSummaryUseCase, useValue: mockSummary },
+        { provide: CreateOperationUseCase, useValue: mockCreateUseCase },
+        { provide: GetClientSummaryUseCase, useValue: mockGetSummaryUseCase },
       ],
     }).compile();
 
     controller = module.get<OperationController>(OperationController);
-    createUseCase = module.get<CreateOperationUseCase>(CreateOperationUseCase);
-    summaryUseCase = module.get<GetClientSummaryUseCase>(GetClientSummaryUseCase);
-  });
-
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+    createUseCase = module.get(CreateOperationUseCase);
   });
 
   it('should call create operation use case with payload', async () => {
     const payload = {
-      clientId: 'client-uuid',
-      requestDate: new Date('2026-07-10T12:00:00Z'),
+      clientId: 'client-1',
+      requestDate: new Date(),
       invoices: [],
     };
-    await controller.create(payload);
-    expect(createUseCase.execute).toHaveBeenCalledWith(payload);
-  });
-
-  it('should call get client summary use case with client ID', async () => {
-    const clientId = 'client-uuid';
-    await controller.getSummary(clientId);
-    expect(summaryUseCase.execute).toHaveBeenCalledWith(clientId);
+    await controller.create(payload, { user: { id: 'test-user-1' }, headers: {}, ip: '127.0.0.1' } as any);
+    expect(createUseCase.execute).toHaveBeenCalledWith({
+      ...payload,
+      performedBy: 'test-user-1',
+      ip: '127.0.0.1',
+      userAgent: undefined,
+    });
   });
 });

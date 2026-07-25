@@ -17,6 +17,7 @@ class FakeClientRepository implements ClientRepository {
     for (const c of this.store.values()) if (c.valueTaxId.equals(taxId)) return c;
     return null;
   }
+  async findAll(): Promise<Client[]> { return Array.from(this.store.values()); }
 }
 
 class FakeOperationRepository implements OperationRepository {
@@ -49,19 +50,21 @@ describe('GetClientSummaryUseCase', () => {
   let operationRepo: FakeOperationRepository;
   let summaryUseCase: GetClientSummaryUseCase;
   let clientId: string;
+  let dummyAuditRepo: any;
 
   beforeEach(async () => {
     clientRepo = new FakeClientRepository();
     operationRepo = new FakeOperationRepository();
     summaryUseCase = new GetClientSummaryUseCase(clientRepo, operationRepo);
+    dummyAuditRepo = { save: jest.fn(), findAll: jest.fn() };
 
-    const { id } = await new RegisterClientUseCase(clientRepo).execute({
-      rfc: 'XYZ850101XXX', name: 'Corp', email: 'corp@mx.mx',
+    const { id } = await new RegisterClientUseCase(clientRepo, dummyAuditRepo).execute({
+      rfc: 'XYZ850101XXX', name: 'Corp', email: 'corp@mx.mx', performedBy: 'user-1'
     });
     clientId = id;
-    await new ApproveClientUseCase(clientRepo).execute({ clientId });
+    await new ApproveClientUseCase(clientRepo, dummyAuditRepo).execute({ clientId, performedBy: 'user-1' });
 
-    const createOp = new CreateOperationUseCase(clientRepo, operationRepo);
+    const createOp = new CreateOperationUseCase(clientRepo, operationRepo, dummyAuditRepo);
 
     await createOp.execute({
       clientId, requestDate: REQUEST_DATE,
@@ -70,6 +73,7 @@ describe('GetClientSummaryUseCase', () => {
         debtorName: 'Debtor', amount: 10000,
         issueDate: new Date('2026-07-01T00:00:00Z'), dueDate: futureDate(30),
       }],
+      performedBy: 'user-1'
     });
 
     await createOp.execute({
@@ -79,6 +83,7 @@ describe('GetClientSummaryUseCase', () => {
         debtorName: 'Debtor', amount: 20000,
         issueDate: new Date('2026-07-01T00:00:00Z'), dueDate: futureDate(15),
       }],
+      performedBy: 'user-1'
     });
   });
 
@@ -100,8 +105,8 @@ describe('GetClientSummaryUseCase', () => {
   });
 
   it('should return null nearestDueDate when client has no operations', async () => {
-    const { id: client2Id } = await new RegisterClientUseCase(clientRepo).execute({
-      rfc: 'GHI030303DEF', name: 'Empty Corp', email: 'e@e.mx',
+    const { id: client2Id } = await new RegisterClientUseCase(clientRepo, dummyAuditRepo).execute({
+      rfc: 'GHI030303DEF', name: 'Empty Corp', email: 'e@e.mx', performedBy: 'user-1'
     });
     const summary = await summaryUseCase.execute(client2Id);
     expect(summary.operationCount).toBe(0);

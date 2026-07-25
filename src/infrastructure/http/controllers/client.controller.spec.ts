@@ -5,28 +5,29 @@ import { ApproveClientUseCase } from '../../../application/use-cases/approve-cli
 
 describe('ClientController', () => {
   let controller: ClientController;
-  let registerUseCase: RegisterClientUseCase;
-  let approveUseCase: ApproveClientUseCase;
+  let registerUseCase: jest.Mocked<RegisterClientUseCase>;
+  let approveUseCase: jest.Mocked<ApproveClientUseCase>;
 
   beforeEach(async () => {
-    const mockRegister = { execute: jest.fn() };
-    const mockApprove = { execute: jest.fn() };
+    const mockRegisterUseCase = {
+      execute: jest.fn().mockResolvedValue({ id: 'some-id' }),
+    };
+
+    const mockApproveUseCase = {
+      execute: jest.fn().mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ClientController],
       providers: [
-        { provide: RegisterClientUseCase, useValue: mockRegister },
-        { provide: ApproveClientUseCase, useValue: mockApprove },
+        { provide: RegisterClientUseCase, useValue: mockRegisterUseCase },
+        { provide: ApproveClientUseCase, useValue: mockApproveUseCase },
       ],
     }).compile();
 
     controller = module.get<ClientController>(ClientController);
-    registerUseCase = module.get<RegisterClientUseCase>(RegisterClientUseCase);
-    approveUseCase = module.get<ApproveClientUseCase>(ApproveClientUseCase);
-  });
-
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+    registerUseCase = module.get(RegisterClientUseCase);
+    approveUseCase = module.get(ApproveClientUseCase);
   });
 
   it('should call register client use case with command', async () => {
@@ -35,13 +36,22 @@ describe('ClientController', () => {
       name: 'Test Name',
       email: 'test@email.com',
     };
-    await controller.register(payload);
-    expect(registerUseCase.execute).toHaveBeenCalledWith(payload);
+    await controller.register(payload, { user: { id: 'test-user-1' }, headers: {}, ip: '127.0.0.1' } as any);
+    expect(registerUseCase.execute).toHaveBeenCalledWith({
+      ...payload,
+      performedBy: 'test-user-1',
+      ip: '127.0.0.1',
+      userAgent: undefined,
+    });
   });
 
   it('should call approve client use case with client ID', async () => {
-    const id = 'uuid-2';
-    await controller.approve(id);
-    expect(approveUseCase.execute).toHaveBeenCalledWith({ clientId: id });
+    await controller.approve('some-id', { user: { id: 'test-user-1' }, headers: {}, ip: '127.0.0.1' } as any);
+    expect(approveUseCase.execute).toHaveBeenCalledWith({ 
+      clientId: 'some-id',
+      performedBy: 'test-user-1',
+      ip: '127.0.0.1',
+      userAgent: undefined,
+    });
   });
 });

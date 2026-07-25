@@ -1,4 +1,5 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Req } from '@nestjs/common';
+import { Request } from 'express';
 import { CreateOperationUseCase, OperationResult } from '../../../application/use-cases/create-operation.use-case';
 import { GetClientSummaryUseCase, ClientSummaryResult } from '../../../application/use-cases/get-client-summary.use-case';
 import { CreateOperationDto } from '../dtos/create-operation.dto';
@@ -16,7 +17,6 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
  */
 import { Public } from '../../auth/decorators/public.decorator';
 
-@Public()
 @ApiTags('Operaciones')
 @Controller()
 export class OperationController {
@@ -41,11 +41,14 @@ export class OperationController {
     description: 'Unprocessable Entity: Fallo en validación de reglas de negocio (cliente PENDING, facturas fuera de rango 15-120 días, o folios duplicados).',
     schema: { example: { message: 'Operation validation failed: Invoice FAC-001 must have a remaining term strictly between 15 and 120 days.', error: 'Unprocessable Entity', statusCode: 422 } }
   })
-  async create(@Body() dto: CreateOperationDto): Promise<OperationResult> {
+  async create(@Body() dto: CreateOperationDto, @Req() req: any): Promise<OperationResult> {
     return await this.createOperationUseCase.execute({
       clientId: dto.clientId,
       requestDate: dto.requestDate,
       invoices: dto.invoices,
+      performedBy: req.user?.id || 'system',
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
     });
   }
 

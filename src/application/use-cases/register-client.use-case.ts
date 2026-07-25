@@ -11,6 +11,9 @@ export interface RegisterClientCommand {
   rfc: string;
   name: string;
   email: string;
+  performedBy: string;
+  ip?: string;
+  userAgent?: string;
 }
 
 /**
@@ -27,8 +30,14 @@ export interface RegisterClientCommand {
  * arrojando un ClientAlreadyExistsException si está en uso. Llama al constructor de negocio Client.create 
  * y luego persiste la entidad."
  */
+import { AuditLogRepository } from '../../domain/repositories/audit-log.repository.interface';
+import { AuditLog } from '../../domain/entities/audit-log.entity';
+
 export class RegisterClientUseCase {
-  constructor(private readonly clientRepository: ClientRepository) {}
+  constructor(
+    private readonly clientRepository: ClientRepository,
+    private readonly auditLogRepository: AuditLogRepository,
+  ) {}
 
   async execute(command: RegisterClientCommand): Promise<{ id: string }> {
     // 1. Validar sintaxis del RFC (TaxId)
@@ -44,6 +53,19 @@ export class RegisterClientUseCase {
     const clientId = randomUUID();
     const client = Client.create(clientId, taxId, command.name, command.email);
     await this.clientRepository.save(client);
+
+    // 4. Registrar auditoría
+    const auditLog = new AuditLog({
+      id: randomUUID(),
+      entity: 'Client',
+      entityId: clientId,
+      action: 'CREATE',
+      performedBy: command.performedBy,
+      newValue: JSON.stringify({ rfc: command.rfc, name: command.name, email: command.email }),
+      ip: command.ip,
+      userAgent: command.userAgent,
+    });
+    await this.auditLogRepository.save(auditLog);
 
     return { id: clientId };
   }

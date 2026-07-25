@@ -89,3 +89,20 @@ model RefreshTokenRecord {
   @@index([tokenHash])
   @@map("refresh_tokens")
 }
+
+model AuditLogRecord {
+  id          String   @id
+  entity      String
+  entityId    String
+  action      String
+  performedBy String
+  oldValue    String?  // JSON string
+  newValue    String?  // JSON string
+  ip          String?
+  userAgent   String?
+  timestamp   DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([performedBy])
+  @@map("audit_logs")
+}

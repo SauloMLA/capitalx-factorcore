@@ -11,6 +11,7 @@ import { PrismaUserRepository } from './repositories/prisma-user.repository';
 import { PrismaRefreshTokenRepository } from './repositories/prisma-refresh-token.repository';
 import { PrismaDashboardQueryService } from './database/queries/prisma-dashboard-query.service';
 import { PrismaService } from './database/prisma.service';
+import { PrismaAuditLogRepository } from './repositories/prisma-audit-log.repository';
 
 import { BcryptPasswordHasher } from './auth/bcrypt-password-hasher';
 import { JwtTokenService } from './auth/jwt-token-service';
@@ -20,6 +21,7 @@ import { ClientRepository } from '../domain/repositories/client.repository.inter
 import { OperationRepository } from '../domain/repositories/operation.repository.interface';
 import { UserRepository } from '../domain/repositories/user.repository.interface';
 import { RefreshTokenRepository } from '../domain/repositories/refresh-token.repository.interface';
+import { AuditLogRepository } from '../domain/repositories/audit-log.repository.interface';
 import { PasswordHasher } from '../application/ports/password-hasher.interface';
 import { TokenService } from '../application/ports/token-service.interface';
 
@@ -36,6 +38,7 @@ import { LogoutUserUseCase } from '../application/use-cases/auth/logout-user.use
 import { GetCurrentUserUseCase } from '../application/use-cases/auth/get-current-user.use-case';
 import { GetUsersUseCase } from '../application/use-cases/get-users.use-case';
 import { GetDashboardMetricsUseCase } from '../application/use-cases/get-dashboard-metrics.use-case';
+import { GetAuditLogsUseCase } from '../application/use-cases/get-audit-logs.use-case';
 /**
  * MÓDULO DE INFRAESTRUCTURA
  * Capa: Infraestructura (Infrastructure Layer)
@@ -65,6 +68,10 @@ import { GetDashboardMetricsUseCase } from '../application/use-cases/get-dashboa
       useClass: PrismaRefreshTokenRepository,
     },
     {
+      provide: REPOSITORY_TOKENS.AUDIT_LOG,
+      useClass: PrismaAuditLogRepository,
+    },
+    {
       provide: 'DashboardQueryService',
       useClass: PrismaDashboardQueryService,
     },
@@ -81,19 +88,19 @@ import { GetDashboardMetricsUseCase } from '../application/use-cases/get-dashboa
     // Casos de uso
     {
       provide: RegisterClientUseCase,
-      useFactory: (clientRepo: ClientRepository) => new RegisterClientUseCase(clientRepo),
-      inject: [REPOSITORY_TOKENS.CLIENT],
+      useFactory: (clientRepo: ClientRepository, auditRepo: AuditLogRepository) => new RegisterClientUseCase(clientRepo, auditRepo),
+      inject: [REPOSITORY_TOKENS.CLIENT, REPOSITORY_TOKENS.AUDIT_LOG],
     },
     {
       provide: ApproveClientUseCase,
-      useFactory: (clientRepo: ClientRepository) => new ApproveClientUseCase(clientRepo),
-      inject: [REPOSITORY_TOKENS.CLIENT],
+      useFactory: (clientRepo: ClientRepository, auditRepo: AuditLogRepository) => new ApproveClientUseCase(clientRepo, auditRepo),
+      inject: [REPOSITORY_TOKENS.CLIENT, REPOSITORY_TOKENS.AUDIT_LOG],
     },
     {
       provide: CreateOperationUseCase,
-      useFactory: (clientRepo: ClientRepository, operationRepo: OperationRepository) =>
-        new CreateOperationUseCase(clientRepo, operationRepo),
-      inject: [REPOSITORY_TOKENS.CLIENT, REPOSITORY_TOKENS.OPERATION],
+      useFactory: (clientRepo: ClientRepository, operationRepo: OperationRepository, auditRepo: AuditLogRepository) =>
+        new CreateOperationUseCase(clientRepo, operationRepo, auditRepo),
+      inject: [REPOSITORY_TOKENS.CLIENT, REPOSITORY_TOKENS.OPERATION, REPOSITORY_TOKENS.AUDIT_LOG],
     },
     {
       provide: GetClientSummaryUseCase,
@@ -103,9 +110,9 @@ import { GetDashboardMetricsUseCase } from '../application/use-cases/get-dashboa
     },
     {
       provide: RegisterUserUseCase,
-      useFactory: (userRepo: UserRepository, passwordHasher: PasswordHasher) =>
-        new RegisterUserUseCase(userRepo, passwordHasher),
-      inject: [REPOSITORY_TOKENS.USER, REPOSITORY_TOKENS.PASSWORD_HASHER],
+      useFactory: (userRepo: UserRepository, passwordHasher: PasswordHasher, auditRepo: AuditLogRepository) =>
+        new RegisterUserUseCase(userRepo, passwordHasher, auditRepo),
+      inject: [REPOSITORY_TOKENS.USER, REPOSITORY_TOKENS.PASSWORD_HASHER, REPOSITORY_TOKENS.AUDIT_LOG],
     },
     {
       provide: LoginUserUseCase,
@@ -158,6 +165,11 @@ import { GetDashboardMetricsUseCase } from '../application/use-cases/get-dashboa
       useFactory: (dashboardQueryService: any) => new GetDashboardMetricsUseCase(dashboardQueryService),
       inject: ['DashboardQueryService'],
     },
+    {
+      provide: GetAuditLogsUseCase,
+      useFactory: (auditRepo: AuditLogRepository) => new GetAuditLogsUseCase(auditRepo),
+      inject: [REPOSITORY_TOKENS.AUDIT_LOG],
+    },
   ],
   exports: [
     RegisterClientUseCase,
@@ -171,10 +183,12 @@ import { GetDashboardMetricsUseCase } from '../application/use-cases/get-dashboa
     GetCurrentUserUseCase,
     GetUsersUseCase,
     GetDashboardMetricsUseCase,
+    GetAuditLogsUseCase,
     REPOSITORY_TOKENS.USER,
     REPOSITORY_TOKENS.REFRESH_TOKEN,
     REPOSITORY_TOKENS.PASSWORD_HASHER,
     REPOSITORY_TOKENS.TOKEN_SERVICE,
+    REPOSITORY_TOKENS.AUDIT_LOG,
   ],
 })
 export class InfrastructureModule {}
