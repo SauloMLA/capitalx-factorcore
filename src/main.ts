@@ -15,6 +15,25 @@ async function bootstrap() {
   // Registrar cookie-parser para el manejo seguro de Refresh Tokens en cookies HttpOnly
   app.use(cookieParser());
 
+  // Configuración de CORS dinámico para permitir peticiones desde Vercel / Localhost con credentials
+  const frontendUrl = process.env.FRONTEND_URL;
+  app.enableCors({
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      if (
+        !origin ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1') ||
+        (frontendUrl && origin === frontendUrl) ||
+        origin.endsWith('.vercel.app')
+      ) {
+        callback(null, true);
+      } else {
+        callback(null, true);
+      }
+    },
+    credentials: true,
+  });
+
   // Registra un validador global para los DTOs de entrada
   app.useGlobalPipes(
     new ValidationPipe({
