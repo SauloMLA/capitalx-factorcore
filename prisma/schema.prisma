@@ -106,3 +106,17 @@ model AuditLogRecord {
   @@index([performedBy])
   @@map("audit_logs")
 }
+
+model NotificationRecord {
+  id        String   @id
+  userId    String?  // Null si es notificación global para la mesa de control
+  title     String
+  message   String
+  type      String   @default("INFO") // "INFO" | "SUCCESS" | "WARNING" | "DANGER"
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
