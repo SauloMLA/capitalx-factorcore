@@ -1,7 +1,8 @@
-import { Body, Controller, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { RegisterClientUseCase } from '../../../application/use-cases/register-client.use-case';
 import { ApproveClientUseCase } from '../../../application/use-cases/approve-client.use-case';
+import { GetClientListUseCase } from '../../../application/use-cases/get-client-list.use-case';
 import { RegisterClientDto } from '../dtos/register-client.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { Public } from '../../auth/decorators/public.decorator';
@@ -16,8 +17,17 @@ export class ClientController {
   constructor(
     private readonly registerClientUseCase: RegisterClientUseCase,
     private readonly approveClientUseCase: ApproveClientUseCase,
+    private readonly getClientListUseCase: GetClientListUseCase,
   ) {}
 
+  // GET /clientes: Lista todos los clientes
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Obtiene la lista completa de clientes registrados, ordenados por fecha de creación descendente.' })
+  @ApiResponse({ status: 200, description: 'Lista de clientes obtenida exitosamente' })
+  async list() {
+    return await this.getClientListUseCase.execute();
+  }
   // POST /clientes: Registro inicial del cliente
   @Public()
   @Post()

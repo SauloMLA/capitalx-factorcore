@@ -43,6 +43,8 @@ import { PrismaNotificationRepository } from './repositories/prisma-notification
 import { NotificationRepository } from '../domain/repositories/notification.repository.interface';
 import { GetNotificationsUseCase } from '../application/use-cases/get-notifications.use-case';
 import { MarkNotificationReadUseCase } from '../application/use-cases/mark-notification-read.use-case';
+import { GetClientListUseCase } from '../application/use-cases/get-client-list.use-case';
+import { GetOperationListUseCase } from '../application/use-cases/get-operation-list.use-case';
 
 /**
  * MÓDULO DE INFRAESTRUCTURA
@@ -189,6 +191,16 @@ import { MarkNotificationReadUseCase } from '../application/use-cases/mark-notif
       useFactory: (notifRepo: NotificationRepository) => new MarkNotificationReadUseCase(notifRepo),
       inject: [REPOSITORY_TOKENS.NOTIFICATION],
     },
+    {
+      provide: GetClientListUseCase,
+      useFactory: (prisma: PrismaService) => new GetClientListUseCase(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: GetOperationListUseCase,
+      useFactory: (prisma: PrismaService) => new GetOperationListUseCase(prisma),
+      inject: [PrismaService],
+    },
   ],
   exports: [
     RegisterClientUseCase,
@@ -205,6 +217,8 @@ import { MarkNotificationReadUseCase } from '../application/use-cases/mark-notif
     GetAuditLogsUseCase,
     GetNotificationsUseCase,
     MarkNotificationReadUseCase,
+    GetClientListUseCase,
+    GetOperationListUseCase,
     REPOSITORY_TOKENS.USER,
     REPOSITORY_TOKENS.REFRESH_TOKEN,
     REPOSITORY_TOKENS.PASSWORD_HASHER,
