@@ -2,6 +2,7 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post
 import { Request } from 'express';
 import { CreateOperationUseCase, OperationResult } from '../../../application/use-cases/create-operation.use-case';
 import { GetClientSummaryUseCase, ClientSummaryResult } from '../../../application/use-cases/get-client-summary.use-case';
+import { GetOperationListUseCase } from '../../../application/use-cases/get-operation-list.use-case';
 import { CreateOperationDto } from '../dtos/create-operation.dto';
 import { OperationResponseDto } from '../dtos/operation-response.dto';
 import { ClientSummaryResponseDto } from '../dtos/client-summary-response.dto';
@@ -23,7 +24,18 @@ export class OperationController {
   constructor(
     private readonly createOperationUseCase: CreateOperationUseCase,
     private readonly getClientSummaryUseCase: GetClientSummaryUseCase,
+    private readonly getOperationListUseCase: GetOperationListUseCase,
   ) {}
+
+  // GET /operaciones: Lista todas las operaciones
+  @Get('operaciones')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Obtiene la lista completa de operaciones de factoraje, incluyendo facturas asociadas.' })
+  @ApiResponse({ status: 200, description: 'Lista de operaciones obtenida exitosamente' })
+  async listOperations(@Req() req: any) {
+    const clientId = (req.query as any)?.clientId as string | undefined;
+    return await this.getOperationListUseCase.execute(clientId);
+  }
 
   // POST /operaciones: Fondea y origina un lote de facturas
   @Post('operaciones')
