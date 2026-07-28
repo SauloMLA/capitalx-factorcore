@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OperationController } from './operation.controller';
 import { CreateOperationUseCase } from '../../../application/use-cases/create-operation.use-case';
 import { GetClientSummaryUseCase } from '../../../application/use-cases/get-client-summary.use-case';
+import { GetOperationListUseCase } from '../../../application/use-cases/get-operation-list.use-case';
 
 describe('OperationController', () => {
   let controller: OperationController;
@@ -14,12 +15,16 @@ describe('OperationController', () => {
     const mockGetSummaryUseCase = {
       execute: jest.fn(),
     };
+    const mockGetOperationListUseCase = {
+      execute: jest.fn().mockResolvedValue([]),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OperationController],
       providers: [
         { provide: CreateOperationUseCase, useValue: mockCreateUseCase },
         { provide: GetClientSummaryUseCase, useValue: mockGetSummaryUseCase },
+        { provide: GetOperationListUseCase, useValue: mockGetOperationListUseCase },
       ],
     }).compile();
 

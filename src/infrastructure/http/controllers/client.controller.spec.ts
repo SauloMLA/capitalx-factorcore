@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ClientController } from './client.controller';
 import { RegisterClientUseCase } from '../../../application/use-cases/register-client.use-case';
 import { ApproveClientUseCase } from '../../../application/use-cases/approve-client.use-case';
+import { GetClientListUseCase } from '../../../application/use-cases/get-client-list.use-case';
 
 describe('ClientController', () => {
   let controller: ClientController;
@@ -17,11 +18,16 @@ describe('ClientController', () => {
       execute: jest.fn().mockResolvedValue(undefined),
     };
 
+    const mockGetClientListUseCase = {
+      execute: jest.fn().mockResolvedValue([]),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ClientController],
       providers: [
         { provide: RegisterClientUseCase, useValue: mockRegisterUseCase },
         { provide: ApproveClientUseCase, useValue: mockApproveUseCase },
+        { provide: GetClientListUseCase, useValue: mockGetClientListUseCase },
       ],
     }).compile();
 

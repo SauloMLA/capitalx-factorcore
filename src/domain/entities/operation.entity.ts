@@ -69,7 +69,7 @@ export class Operation {
     Operation.validateClientIsApproved(client);
 
     // 2. Validar detalladamente cada factura del lote
-    Operation.validateInvoices(invoices, requestDate, existingFolios);
+    Operation.validateInvoices(invoices, requestDate, existingFolios, client);
 
     // 3. Si las validaciones pasan, calcular las sumas, comisiones y depósito
     const amounts = Operation.calculateAmounts(invoices);
@@ -113,12 +113,21 @@ export class Operation {
     invoices: Invoice[],
     requestDate: Date,
     existingFolios: string[],
+    client: Client,
   ): void {
     const errors: InvoiceValidationError[] = [];
     const seenFolios = new Set<string>();
 
     for (const invoice of invoices) {
       const folio = invoice.valueFolio.value;
+
+      // Regla Anti Auto-Factoraje: El deudor no puede ser el mismo cliente cedente
+      if (invoice.valueDebtorTaxId.equals(client.valueTaxId)) {
+        errors.push({
+          folio,
+          reason: 'Self-factoring is not allowed: debtor RFC cannot match client RFC',
+        });
+      }
 
       // Regla RD-INV-001: El monto de cada factura debe ser estrictamente positivo
       if (invoice.valueAmount.value <= 0) {

@@ -146,4 +146,31 @@ describe('Operation Aggregate Root', () => {
     expect(caught).toBeInstanceOf(OperationValidationException);
     expect(caught?.errors.length).toBeGreaterThanOrEqual(2);
   });
+
+  it('should throw OperationValidationException when debtor RFC is equal to client RFC (self-factoring)', () => {
+    const client = makeApprovedClient(); // client RFC is XYZ850101XXX
+    const issueDate = new Date('2026-07-01T00:00:00Z');
+    const dueDate = new Date(REQUEST_DATE);
+    dueDate.setUTCDate(dueDate.getUTCDate() + 30);
+
+    const selfInvoice = Invoice.create(
+      'inv-self',
+      InvoiceFolio.create('FOL-SELF'),
+      TaxId.create('XYZ850101XXX'), // Same as client!
+      'Self Debtor',
+      Money.create(10000),
+      issueDate,
+      dueDate,
+    );
+
+    let caught: OperationValidationException | undefined;
+    try {
+      Operation.create('op-uuid-self', client, [selfInvoice], REQUEST_DATE, []);
+    } catch (e) {
+      caught = e as OperationValidationException;
+    }
+
+    expect(caught).toBeInstanceOf(OperationValidationException);
+    expect(caught?.errors[0].reason).toContain('Self-factoring');
+  });
 });
