@@ -33,7 +33,7 @@ export class OperationMapper {
       Invoice.reconstitute(
         inv.id,
         InvoiceFolio.create(inv.folio),
-        TaxId.create(inv.debtorRfc),
+        TaxId.create(inv.debtorRfc, { allowPhysicalPerson: true }),
         inv.debtorName,
         Money.create(inv.amount),
         new Date(inv.issueDate),

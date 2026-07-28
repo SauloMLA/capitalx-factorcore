@@ -33,7 +33,7 @@ class FakeOperationRepository implements OperationRepository {
   }
   async findFoliosByClientId(clientId: string): Promise<string[]> {
     const ops = await this.findByClientId(clientId);
-    return ops.flatMap(o => o.invoices.map(i => i.valueFolio.value));
+    return ops.flatMap(o => o.valueInvoices.map(i => i.valueFolio.value));
   }
 }
 
