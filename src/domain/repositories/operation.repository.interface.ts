@@ -13,8 +13,8 @@ export interface OperationRepository {
   save(operation: Operation): Promise<void>;
   // Busca una operación por su ID único con sus facturas incluidas
   findById(id: string): Promise<Operation | null>;
-  // Devuelve la lista histórica de folios de facturas ya financiados por el cliente
-  findFoliosByClientId(clientId: string): Promise<string[]>;
+  // Devuelve la lista histórica de folios de facturas ya financiados por el cliente (opcionalmente filtrados por un lote específico)
+  findFoliosByClientId(clientId: string, targetFolios?: string[]): Promise<string[]>;
   // Devuelve todas las operaciones asociadas a un cliente específico
   findByClientId(clientId: string): Promise<Operation[]>;
 }

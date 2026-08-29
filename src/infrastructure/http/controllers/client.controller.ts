@@ -6,6 +6,8 @@ import { GetClientListUseCase } from '../../../application/use-cases/get-client-
 import { RegisterClientDto } from '../dtos/register-client.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { Public } from '../../auth/decorators/public.decorator';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { UserRole } from '../../../domain/enums/user-role.enum';
 
 /**
  * CONTROLADOR DE CLIENTES
@@ -49,18 +51,21 @@ export class ClientController {
       rfc: dto.rfc,
       name: dto.name,
       email: dto.email,
-      performedBy: req.user?.id || 'system',
+      performedBy: req.user?.sub || 'system',
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });
   }
 
-  // PATCH /clientes/:id/aprobar: Aprobación explícita del cliente
+  // PATCH /clientes/:id/aprobar: Aprobación explícita del cliente (Solo Administradores)
   @Patch(':id/aprobar')
+  @Roles(UserRole.ADMINISTRATOR)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Aprueba a un cliente pendiente. Este es un prerrequisito para que el cliente pueda originar operaciones de factoraje.' })
+  @ApiOperation({ summary: 'Aprueba a un cliente pendiente. Este es un prerrequisito para que el cliente pueda originar operaciones de factoraje (Solo Administradores).' })
   @ApiParam({ name: 'id', description: 'UUID v4 del Cliente', example: '123e4567-e89b-12d3-a456-426614174000' })
   @ApiResponse({ status: 200, description: 'Cliente aprobado exitosamente' })
+  @ApiResponse({ status: 401, description: 'No autenticado' })
+  @ApiResponse({ status: 403, description: 'No tienes permisos para realizar esta acción' })
   @ApiResponse({ status: 404, description: 'Cliente no encontrado' })
   @ApiResponse({ 
     status: 422, 
@@ -70,7 +75,7 @@ export class ClientController {
   async approve(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string, @Req() req: any): Promise<void> {
     await this.approveClientUseCase.execute({ 
       clientId: id, 
-      performedBy: req.user?.id || 'system',
+      performedBy: req.user?.sub || 'system',
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });

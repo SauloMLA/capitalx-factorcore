@@ -11,12 +11,6 @@ import { DomainException } from '../common/exceptions/domain.exception';
  * Representar un documento por cobrar que es cedido por el cliente.
  * Almacena los folios, montos, plazos de vigencia y datos del deudor de forma estructurada.
  * Realiza cálculos temporales exactos para decidir si la factura es elegible.
- * 
- * Defensa en entrevista:
- * "La factura es una entidad interna del agregado Operation. Se auto-valida al crearse, 
- * asegurando que el deudor tenga nombre y que la fecha de vencimiento sea posterior a la de emisión. 
- * El método getRemainingDays realiza cálculos limpios de días calendario a la medianoche (UTC) 
- * para evadir desajustes horarios en servidores."
  */
 export class Invoice {
   private readonly id: string;

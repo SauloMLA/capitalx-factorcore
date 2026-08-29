@@ -16,12 +16,6 @@ import {
  * Agrupa un lote de facturas de un cliente y evalúa si todo el lote cumple con las reglas del negocio.
  * Si una sola factura no pasa las validaciones, rechaza toda la operación.
  * Realiza los cálculos consolidados de aforo (85%), comisión (1.5%) y depósito neto.
- * 
- * Defensa en entrevista:
- * "La Operación actúa como un Aggregate Root. Garantiza la consistencia del lote de facturas,
- * evitando que existan facturas duplicadas en el lote o folios que ya hayan sido financiados 
- * en el pasado (evita doble financiamiento). Todas las matemáticas de cobro ocurren aquí adentro
- * de manera inmutable."
  */
 export class Operation {
   private readonly id: string;

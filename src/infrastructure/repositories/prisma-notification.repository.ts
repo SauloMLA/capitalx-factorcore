@@ -33,7 +33,7 @@ export class PrismaNotificationRepository implements NotificationRepository {
     });
 
     return records.map(
-      (rec) =>
+      (rec: any) =>
         new Notification({
           id: rec.id,
           userId: rec.userId,

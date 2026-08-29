@@ -19,7 +19,7 @@ export class GetOperationListUseCase {
       orderBy: { createdAt: 'desc' },
     });
 
-    return operations.map(op => ({
+    return operations.map((op: any) => ({
       id: op.id,
       clientId: op.clientId,
       totalAmount: op.totalAmount,
@@ -27,7 +27,7 @@ export class GetOperationListUseCase {
       commission: op.commission,
       depositAmount: op.depositAmount,
       createdAt: op.createdAt.toISOString(),
-      invoices: op.invoices.map(inv => ({
+      invoices: op.invoices.map((inv: any) => ({
         id: inv.id,
         operationId: inv.operationId,
         folio: inv.folio,

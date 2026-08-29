@@ -35,7 +35,7 @@ export class PrismaAuditLogRepository implements AuditLogRepository {
       orderBy: { timestamp: 'desc' },
     });
 
-    return records.map((record) => new AuditLog({
+    return records.map((record: any) => new AuditLog({
       id: record.id,
       entity: record.entity,
       entityId: record.entityId,

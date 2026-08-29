@@ -44,7 +44,7 @@ $$\text{JWT} \longrightarrow \text{Refresh Token (HttpOnly)} \longrightarrow \te
 ## 🚀 Inicio Rápido
 
 ```bash
-cd financial-api
+cd capitalx-factorcore
 cp .env.example .env
 npm install
 npm run db:setup

@@ -17,7 +17,7 @@ export class GetClientListUseCase {
       orderBy: { createdAt: 'desc' },
     });
 
-    return clients.map(client => ({
+    return clients.map((client: any) => ({
       id: client.id,
       rfc: client.rfc,
       name: client.name,

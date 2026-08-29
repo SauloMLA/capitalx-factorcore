@@ -23,12 +23,6 @@ export interface RegisterClientCommand {
  * ¿Qué responsabilidad tiene?
  * Orquestar el flujo para crear una nueva cuenta de cliente (empresa) en el sistema.
  * Asegura la unicidad del RFC antes de dar de alta al cliente.
- * 
- * Defensa en entrevista:
- * "Esta clase implementa la lógica de orquestación de registro de cliente.
- * Utiliza TaxId para validar la estructura fiscal y pregunta al repositorio si ese RFC ya existe, 
- * arrojando un ClientAlreadyExistsException si está en uso. Llama al constructor de negocio Client.create 
- * y luego persiste la entidad."
  */
 import { AuditLogRepository } from '../../domain/repositories/audit-log.repository.interface';
 import { AuditLog } from '../../domain/entities/audit-log.entity';

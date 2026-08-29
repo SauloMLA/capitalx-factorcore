@@ -69,8 +69,8 @@ describe('AuthController', () => {
     expect(getMeUseCase.execute).toHaveBeenCalledWith('user-1');
   });
 
-  it('should register', async () => {
-    const result = await controller.register({ email: 'test@test.com', name: 'T', password: '123', role: 'OPERATOR' as any }, { user: { id: 'test-user-1' }, headers: {}, ip: '127.0.0.1' } as any);
+  it('should register using sub from JWT for performedBy', async () => {
+    const result = await controller.register({ email: 'test@test.com', name: 'T', password: '123', role: 'OPERATOR' as any }, { user: { sub: 'test-user-1' }, headers: {}, ip: '127.0.0.1' } as any);
     expect(result.id).toBe('new-user');
     expect(registerUseCase.execute).toHaveBeenCalledWith({ email: 'test@test.com', name: 'T', password: '123', role: 'OPERATOR', performedBy: 'test-user-1', ip: '127.0.0.1', userAgent: undefined });
   });

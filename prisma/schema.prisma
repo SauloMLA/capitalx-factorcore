@@ -29,10 +29,10 @@ model ClientRecord {
 model OperationRecord {
   id             String   @id
   clientId       String
-  totalAmount    Float
-  advancedAmount Float
-  commission     Float
-  depositAmount  Float
+  totalAmount    Decimal  @db.Decimal(18, 2)
+  advancedAmount Decimal  @db.Decimal(18, 2)
+  commission     Decimal  @db.Decimal(18, 2)
+  depositAmount  Decimal  @db.Decimal(18, 2)
   createdAt      DateTime @default(now())
 
   client   ClientRecord    @relation(fields: [clientId], references: [id])
@@ -47,7 +47,7 @@ model InvoiceRecord {
   folio       String
   debtorRfc   String
   debtorName  String
-  amount      Float
+  amount      Decimal  @db.Decimal(18, 2)
   issueDate   DateTime
   dueDate     DateTime
   createdAt   DateTime @default(now())
