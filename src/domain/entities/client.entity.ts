@@ -10,10 +10,6 @@ import { DomainException } from '../common/exceptions/domain.exception';
  * Representar una empresa proveedora registrada en la plataforma de factoraje.
  * Guarda su RFC, razón social, correo de contacto y estado.
  * Se encarga de proteger sus propias reglas de cambio de estado (ej. de PENDING a APPROVED).
- * 
- * Defensa en entrevista:
- * "Client es una Entidad porque posee una identidad única (ID) que persiste a lo largo del tiempo.
- * Protege sus invariantes al nacer (siempre en PENDING) y al aprobarse (lanza error si ya estaba aprobado)."
  */
 export class Client {
   private readonly id: string;

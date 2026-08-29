@@ -19,9 +19,9 @@ export class PrismaDashboardQueryService implements DashboardQueryService {
       },
     });
 
-    const totalVolume = aggregates._sum.totalAmount || 0;
-    const commissions = aggregates._sum.commission || 0;
-    const advancedAmount = aggregates._sum.advancedAmount || 0;
+    const totalVolume = Number(aggregates._sum.totalAmount || 0);
+    const commissions = Number(aggregates._sum.commission || 0);
+    const advancedAmount = Number(aggregates._sum.advancedAmount || 0);
     const activeOperations = aggregates._count.id;
 
     // KPI: Aforo promedio (advancedAmount / totalAmount)
@@ -49,12 +49,12 @@ export class PrismaDashboardQueryService implements DashboardQueryService {
     });
 
     const volumeByMonthMap = new Map<string, { volume: number; commission: number }>();
-    operations.forEach(op => {
+    operations.forEach((op: any) => {
       const month = op.createdAt.toLocaleString('es-MX', { month: 'short', year: 'numeric' });
       const current = volumeByMonthMap.get(month) || { volume: 0, commission: 0 };
       volumeByMonthMap.set(month, {
-        volume: current.volume + op.totalAmount,
-        commission: current.commission + op.commission,
+        volume: current.volume + Number(op.totalAmount),
+        commission: current.commission + Number(op.commission),
       });
     });
 
@@ -71,7 +71,7 @@ export class PrismaDashboardQueryService implements DashboardQueryService {
     });
 
     const clientsByMonthMap = new Map<string, number>();
-    clients.forEach(c => {
+    clients.forEach((c: any) => {
       const month = c.createdAt.toLocaleString('es-MX', { month: 'short', year: 'numeric' });
       clientsByMonthMap.set(month, (clientsByMonthMap.get(month) || 0) + 1);
     });

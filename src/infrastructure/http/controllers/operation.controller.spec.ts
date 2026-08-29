@@ -32,16 +32,31 @@ describe('OperationController', () => {
     createUseCase = module.get(CreateOperationUseCase);
   });
 
-  it('should call create operation use case with payload', async () => {
+  it('should call create operation use case with payload and user sub from JWT', async () => {
     const payload = {
       clientId: 'client-1',
       requestDate: new Date(),
       invoices: [],
     };
-    await controller.create(payload, { user: { id: 'test-user-1' }, headers: {}, ip: '127.0.0.1' } as any);
+    await controller.create(payload, { user: { sub: 'test-user-1' }, headers: {}, ip: '127.0.0.1' } as any);
     expect(createUseCase.execute).toHaveBeenCalledWith({
       ...payload,
       performedBy: 'test-user-1',
+      ip: '127.0.0.1',
+      userAgent: undefined,
+    });
+  });
+
+  it('should fallback performedBy to system when user is not present in request', async () => {
+    const payload = {
+      clientId: 'client-1',
+      requestDate: new Date(),
+      invoices: [],
+    };
+    await controller.create(payload, { headers: {}, ip: '127.0.0.1' } as any);
+    expect(createUseCase.execute).toHaveBeenCalledWith({
+      ...payload,
+      performedBy: 'system',
       ip: '127.0.0.1',
       userAgent: undefined,
     });

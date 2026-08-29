@@ -15,12 +15,6 @@ export type OperationRecordWithInvoices = OperationRecord & { invoices: InvoiceR
  * ¿Qué responsabilidad tiene?
  * Traducir el Agregado de Dominio `Operation` (que contiene entidades ricas y lógica de negocio) 
  * a tablas planas de persistencia (`OperationRecord` e `InvoiceRecord`) y viceversa.
- * 
- * Defensa en entrevista:
- * "Esta clase traduce la estructura relacional anidada de la base de datos a objetos del dominio. 
- * Guarda los montos calculados (como la comisión y el depósito) en columnas de la base de datos 
- * para evitar recalcularlos en tiempo real cada vez que leemos el historial del cliente (optimizando 
- * el rendimiento de las lecturas)."
  */
 export class OperationMapper {
   /**
@@ -29,13 +23,13 @@ export class OperationMapper {
    */
   static toDomain(record: OperationRecordWithInvoices): Operation {
     // 1. Mapear y reconstituir cada factura individual
-    const invoices = record.invoices.map((inv) =>
+    const invoices = record.invoices.map((inv: any) =>
       Invoice.reconstitute(
         inv.id,
         InvoiceFolio.create(inv.folio),
         TaxId.create(inv.debtorRfc, { allowPhysicalPerson: true }),
         inv.debtorName,
-        Money.create(inv.amount),
+        Money.create(Number(inv.amount)),
         new Date(inv.issueDate),
         new Date(inv.dueDate),
       ),
@@ -46,10 +40,10 @@ export class OperationMapper {
       record.id,
       record.clientId,
       invoices,
-      Money.create(record.totalAmount),
-      Money.create(record.advancedAmount),
-      Money.create(record.commission),
-      Money.create(record.depositAmount),
+      Money.create(Number(record.totalAmount)),
+      Money.create(Number(record.advancedAmount)),
+      Money.create(Number(record.commission)),
+      Money.create(Number(record.depositAmount)),
     );
   }
 

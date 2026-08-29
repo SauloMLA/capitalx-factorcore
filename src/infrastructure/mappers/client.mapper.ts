@@ -12,11 +12,6 @@ import { DomainException } from '../../domain/common/exceptions/domain.exception
  * Servir como traductor bidireccional entre el modelo de persistencia física de Prisma (`ClientRecord`)
  * y la entidad rica de Dominio (`Client`).
  * Es la única clase autorizada para conocer simultáneamente ambas representaciones del Cliente.
- * 
- * Defensa en entrevista:
- * "El Mapper evita el acoplamiento de la base de datos con nuestro Dominio. 
- * Si mañana cambia el nombre de la columna 'rfc' a 'registro_federal' en SQLite, solo cambiamos 
- * este archivo. El dominio y los casos de uso siguen intactos porque ellos no tocan el modelo físico."
  */
 export class ClientMapper {
   /**

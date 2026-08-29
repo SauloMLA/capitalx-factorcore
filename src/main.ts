@@ -15,7 +15,7 @@ async function bootstrap() {
   // Registrar cookie-parser para el manejo seguro de Refresh Tokens en cookies HttpOnly
   app.use(cookieParser());
 
-  // Configuración de CORS dinámico para permitir peticiones desde Vercel / Localhost con credentials
+  // Configuración de CORS segura para permitir peticiones desde Vercel / Localhost con credentials
   const frontendUrl = process.env.FRONTEND_URL;
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
@@ -28,7 +28,7 @@ async function bootstrap() {
       ) {
         callback(null, true);
       } else {
-        callback(null, true);
+        callback(null, false);
       }
     },
     credentials: true,

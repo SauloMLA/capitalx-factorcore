@@ -23,7 +23,7 @@ export class PrismaOperationRepository implements OperationRepository {
     const { operationRecord, invoiceRecords } = OperationMapper.toPersistence(operation);
 
     // 2. Ejecuta una transacción atómica ($transaction) para asegurar consistencia
-    await this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx: any) => {
       // Guarda o actualiza los datos generales de la operación
       await tx.operationRecord.upsert({
         where: { id: operationRecord.id },
@@ -49,13 +49,18 @@ export class PrismaOperationRepository implements OperationRepository {
     return OperationMapper.toDomain(record);
   }
 
-  // Busca todos los folios de facturas ya financiados por el cliente (para validación de duplicados)
-  async findFoliosByClientId(clientId: string): Promise<string[]> {
+  // Busca folios de facturas ya financiados por el cliente. Si se pasa targetFolios, filtra directamente en SQL con WHERE IN.
+  async findFoliosByClientId(clientId: string, targetFolios?: string[]): Promise<string[]> {
+    const whereCondition: any = { operation: { clientId } };
+    if (targetFolios && targetFolios.length > 0) {
+      whereCondition.folio = { in: targetFolios };
+    }
+
     const invoices = await this.prisma.invoiceRecord.findMany({
-      where: { operation: { clientId } },
+      where: whereCondition,
       select: { folio: true }, // Solo selecciona la columna 'folio' para ahorrar memoria
     });
-    return invoices.map((inv) => inv.folio);
+    return invoices.map((inv: any) => inv.folio);
   }
 
   // Obtiene el historial completo de operaciones de un cliente con sus facturas incluidas
@@ -65,6 +70,6 @@ export class PrismaOperationRepository implements OperationRepository {
       include: { invoices: true },
     });
     // Convierte el array de registros planos a un array de entidades del dominio
-    return records.map((r) => OperationMapper.toDomain(r));
+    return records.map((r: any) => OperationMapper.toDomain(r));
   }
 }

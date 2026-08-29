@@ -10,15 +10,9 @@ import { ClientMapper } from '../mappers/client.mapper';
  * Capa: Infraestructura (Infrastructure Layer)
  * 
  * ¿Qué responsabilidad tiene?
- * Implementar el contrato `ClientRepository` del dominio usando Prisma para interactuar con SQLite.
+ * Implementar el contrato `ClientRepository` del dominio usando Prisma para interactuar con PostgreSQL.
  * Se encarga de hacer los inserts/updates físicos y de mapear los registros crudos de la base de datos
  * a entidades vivas del Dominio (y viceversa) usando el `ClientMapper`.
- * 
- * Defensa en entrevista:
- * "Esta clase implementa la interfaz ClientRepository del dominio. La capa de aplicación no sabe 
- * que existimos; ella solo llama a los métodos findById o save. Si en el futuro cambiamos a PostgreSQL 
- * u otro ORM como TypeORM, solo tendremos que crear otro archivo en esta carpeta que implemente la 
- * misma interfaz, sin tener que modificar una sola línea de código en la capa de casos de uso."
  */
 @Injectable()
 export class PrismaClientRepository implements ClientRepository {

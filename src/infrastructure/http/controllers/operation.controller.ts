@@ -58,7 +58,9 @@ export class OperationController {
       clientId: dto.clientId,
       requestDate: dto.requestDate,
       invoices: dto.invoices,
-      performedBy: req.user?.id || 'system',
+      performedBy: req.user?.sub || 'system',
+      userRole: req.user?.role,
+      userClientId: req.user?.clientId,
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });

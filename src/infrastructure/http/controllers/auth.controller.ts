@@ -7,6 +7,7 @@ import {
   Req,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import type { Response, Request } from 'express';
@@ -16,6 +17,7 @@ import { RefreshTokenUseCase } from '../../../application/use-cases/auth/refresh
 import { LogoutUserUseCase } from '../../../application/use-cases/auth/logout-user.use-case';
 import { GetCurrentUserUseCase } from '../../../application/use-cases/auth/get-current-user.use-case';
 import { RegisterUserUseCase } from '../../../application/use-cases/register-user.use-case';
+import { UserRole } from '../../../domain/enums/user-role.enum';
 
 import { LoginDto } from '../dtos/login.dto';
 import { RefreshTokenRequestDto } from '../dtos/refresh-token-request.dto';
@@ -113,9 +115,16 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Registrar un nuevo usuario (Inicial / Mesa de Control)' })
   async register(@Body() dto: RegisterUserDto, @Req() req: any) {
+    const callerRole = req.user?.role;
+    if (dto.role === UserRole.ADMINISTRATOR && callerRole !== UserRole.ADMINISTRATOR) {
+      throw new ForbiddenException(
+        'Se requieren permisos de Administrador para registrar un usuario con rol ADMINISTRATOR',
+      );
+    }
+
     return this.registerUserUseCase.execute({
       ...dto,
-      performedBy: req.user?.id || 'system',
+      performedBy: req.user?.sub || 'system',
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });

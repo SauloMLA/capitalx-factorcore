@@ -10,6 +10,8 @@ import { TaxId } from '../../domain/common/value-objects/tax-id.value-object';
 import { ClientNotFoundException } from '../exceptions/client.exceptions';
 import { OperationValidationException } from '../../domain/common/exceptions/operation-validation.exception';
 import { DomainException } from '../../domain/common/exceptions/domain.exception';
+import { UserRole } from '../../domain/enums/user-role.enum';
+import { ForbiddenException } from '@nestjs/common';
 
 // ─── In-memory fakes ──────────────────────────────────────────────────────────
 
@@ -133,5 +135,24 @@ describe('CreateOperationUseCase', () => {
     await expect(
       useCase.execute(baseCommand(clientId)),
     ).rejects.toBeInstanceOf(OperationValidationException);
+  });
+
+  it('should throw ForbiddenException when an OPERATOR attempts cross-tenant operation creation', async () => {
+    await expect(
+      useCase.execute({
+        ...baseCommand(clientId),
+        userRole: UserRole.OPERATOR,
+        userClientId: 'other-client-id',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('should allow an OPERATOR to create an operation for their own assigned client', async () => {
+    const result = await useCase.execute({
+      ...baseCommand(clientId),
+      userRole: UserRole.OPERATOR,
+      userClientId: clientId,
+    });
+    expect(result.operationId).toBeDefined();
   });
 });

@@ -8,6 +8,9 @@ import { ClientRepository } from '../../domain/repositories/client.repository.in
 import { OperationRepository } from '../../domain/repositories/operation.repository.interface';
 import { ClientNotFoundException } from '../exceptions/client.exceptions';
 
+import { UserRole } from '../../domain/enums/user-role.enum';
+import { ForbiddenException } from '@nestjs/common';
+
 // Estructura de entrada para las facturas a financiar
 export interface InvoiceInput {
   folio: string;
@@ -24,6 +27,8 @@ export interface CreateOperationCommand {
   requestDate: Date;
   invoices: InvoiceInput[];
   performedBy: string;
+  userRole?: UserRole;
+  userClientId?: string | null;
   ip?: string;
   userAgent?: string;
 }
@@ -61,14 +66,24 @@ export class CreateOperationUseCase {
   ) {}
 
   async execute(command: CreateOperationCommand): Promise<OperationResult> {
+    // 0. Validar aislamiento multi-inquilino (tenant isolation) si el rol es OPERATOR
+    if (command.userRole === UserRole.OPERATOR) {
+      if (!command.userClientId || command.userClientId !== command.clientId) {
+        throw new ForbiddenException(
+          'Acceso denegado: los operadores solo pueden crear operaciones para su propio cliente asignado',
+        );
+      }
+    }
+
     // 1. Obtener al cliente desde la base de datos
     const client = await this.clientRepository.findById(command.clientId);
     if (!client) {
       throw new ClientNotFoundException(command.clientId);
     }
 
-    // 2. Traer folios financiados históricamente por este cliente
-    const existingFolios = await this.operationRepository.findFoliosByClientId(command.clientId);
+    // 2. Traer folios financiados históricamente por este cliente (filtrados en SQL por el lote actual)
+    const incomingFolios = command.invoices.map((inv) => inv.folio);
+    const existingFolios = await this.operationRepository.findFoliosByClientId(command.clientId, incomingFolios);
 
     // 3. Crear instancias de entidades Invoice y sus Value Objects
     const invoices = command.invoices.map((inv) =>

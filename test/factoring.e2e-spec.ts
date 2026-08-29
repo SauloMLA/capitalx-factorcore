@@ -4,22 +4,32 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { execSync } from 'child_process';
 
-// Force DATABASE_URL to test.db before anything loads Prisma Client
-process.env.DATABASE_URL = 'file:./test.db';
+// Force DATABASE_URL for testing if not set
+if (!process.env.DATABASE_URL || process.env.DATABASE_URL.startsWith('file:')) {
+  process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/factorcore_test';
+}
 
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/infrastructure/database/prisma.service';
 import { HttpExceptionFilter } from './../src/infrastructure/http/filters/http-exception.filter';
+import { REPOSITORY_TOKENS } from './../src/infrastructure/tokens/repository.tokens';
+import { TokenService } from './../src/application/ports/token-service.interface';
+import { UserRole } from './../src/domain/enums/user-role.enum';
 
 describe('Factoring API Integration (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  let adminToken: string;
+  let operatorToken: string;
 
   beforeAll(async () => {
-    // Programmatically push schema to SQLite test database to ensure it is created and aligned
-    execSync('npx prisma db push --skip-generate', {
-      env: { ...process.env, DATABASE_URL: 'file:./test.db' },
-    });
+    try {
+      execSync('npx prisma db push --skip-generate', {
+        env: { ...process.env },
+      });
+    } catch {
+      // If no PostgreSQL instance is running locally, tests fallback gracefully
+    }
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -37,6 +47,20 @@ describe('Factoring API Integration (e2e)', () => {
 
     await app.init();
     prisma = app.get<PrismaService>(PrismaService);
+
+    const tokenService = app.get<TokenService>(REPOSITORY_TOKENS.TOKEN_SERVICE);
+    adminToken = await tokenService.generateAccessToken({
+      sub: 'admin-uuid-1',
+      email: 'admin@capitalx.com',
+      role: UserRole.ADMINISTRATOR,
+      clientId: null,
+    });
+    operatorToken = await tokenService.generateAccessToken({
+      sub: 'operator-uuid-1',
+      email: 'operator@capitalx.com',
+      role: UserRole.OPERATOR,
+      clientId: null,
+    });
   });
 
   beforeEach(async () => {
@@ -53,7 +77,7 @@ describe('Factoring API Integration (e2e)', () => {
   // ─── Clients Flow ───────────────────────────────────────────────────────────
 
   describe('POST /clientes & PATCH /clientes/:id/aprobar', () => {
-    it('should register a client in pending status and then approve it', async () => {
+    it('should register a client in pending status and allow ADMINISTRATOR to approve it', async () => {
       // 1. Register Client (Pending)
       const res = await request(app.getHttpServer())
         .post('/clientes')
@@ -71,14 +95,46 @@ describe('Factoring API Integration (e2e)', () => {
       expect(client).toBeDefined();
       expect(client?.status).toBe('PENDING');
 
-      // 2. Approve Client
+      // 2. Approve Client with ADMINISTRATOR token
       await request(app.getHttpServer())
         .patch(`/clientes/${clientId}/aprobar`)
+        .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       // Verify status change in database
       const approvedClient = await prisma.clientRecord.findUnique({ where: { id: clientId } });
       expect(approvedClient?.status).toBe('APPROVED');
+    });
+
+    it('should reject approval from OPERATOR role (403 Forbidden)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/clientes')
+        .send({
+          rfc: 'OP850101XXX',
+          name: 'Operator Test Client',
+          email: 'op@client.com',
+        })
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .patch(`/clientes/${res.body.id}/aprobar`)
+        .set('Authorization', `Bearer ${operatorToken}`)
+        .expect(403);
+    });
+
+    it('should reject approval from unauthenticated request (401 Unauthorized)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/clientes')
+        .send({
+          rfc: 'UNAUTH850101X',
+          name: 'Unauth Client',
+          email: 'unauth@client.com',
+        })
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .patch(`/clientes/${res.body.id}/aprobar`)
+        .expect(401);
     });
 
     it('should reject registration with invalid RFC format (400)', async () => {
@@ -116,8 +172,14 @@ describe('Factoring API Integration (e2e)', () => {
         .send({ rfc: 'WXY850101XXX', name: 'Corp', email: 'c@c.mx' });
       const clientId = res.body.id;
 
-      await request(app.getHttpServer()).patch(`/clientes/${clientId}/aprobar`).expect(200);
-      await request(app.getHttpServer()).patch(`/clientes/${clientId}/aprobar`).expect(422);
+      await request(app.getHttpServer())
+        .patch(`/clientes/${clientId}/aprobar`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      await request(app.getHttpServer())
+        .patch(`/clientes/${clientId}/aprobar`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(422);
     });
   });
 
@@ -133,7 +195,10 @@ describe('Factoring API Integration (e2e)', () => {
         .post('/clientes')
         .send({ rfc: 'QWE850101XXX', name: 'Eligible Client', email: 'e@client.com' });
       clientId = res.body.id;
-      await request(app.getHttpServer()).patch(`/clientes/${clientId}/aprobar`).expect(200);
+      await request(app.getHttpServer())
+        .patch(`/clientes/${clientId}/aprobar`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
     });
 
     it('should create factoring operation and get accurate client summary metrics', async () => {

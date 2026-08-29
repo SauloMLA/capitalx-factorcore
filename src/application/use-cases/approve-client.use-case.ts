@@ -17,12 +17,6 @@ export interface ApproveClientCommand {
  * 
  * ¿Qué responsabilidad tiene?
  * Orquestar la transición de un cliente de estado PENDING a APPROVED.
- * 
- * Defensa en entrevista:
- * "El caso de uso busca al cliente en el repositorio. Si no existe, lanza ClientNotFoundException.
- * Si existe, delega el cambio de estado a la entidad Client llamando a `.approve()`.
- * Es la propia entidad Client la que protege su estado para no ser aprobada dos veces (regla de negocio).
- * Luego de la aprobación, guardamos los cambios a través del repositorio."
  */
 import { AuditLogRepository } from '../../domain/repositories/audit-log.repository.interface';
 import { AuditLog } from '../../domain/entities/audit-log.entity';
